@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.vercel/
+.env*
+!.env.example
+coverage/
+*.log
+data/
+tmp/
+public/
+output/
+docs/reference/
+docs/source-extracts/
+__pycache__/
+*.pyc
