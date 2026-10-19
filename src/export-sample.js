@@ -1,0 +1,10 @@
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { renderPremium } from './domain/premium.js';
+import { sampleDraft } from '../web/sample.js';
+const root = resolve(import.meta.dirname, '..');
+const css = await readFile(resolve(root, 'web/styles.css'), 'utf8');
+const html = renderPremium(sampleDraft(), { standalone: true }).replace('</head>', `<style>${css}</style></head>`);
+await mkdir(resolve(root, 'output'), { recursive: true });
+await writeFile(resolve(root, 'output/sample-premium.html'), html);
+console.log('Fictional sample premium saved to E:\\CARO\\output\\sample-premium.html');
