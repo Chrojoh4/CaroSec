@@ -1,7 +1,7 @@
 export async function loadWorkspace(client){
   const [clubs,trials]=await Promise.all([
     client.from('caro_clubs').select('id,name,timezone').order('name'),
-    client.from('caro_trials').select('id,club_id,title,start_date,end_date,timezone,application_state').order('start_date'),
+    client.from('caro_trials').select('id,club_id,title,start_date,end_date,timezone,application_state,revision,planning').order('start_date'),
   ]);
   if(clubs.error||trials.error)throw new Error('The workspace could not be loaded. Check the database setup and your access.');
   return {clubs:clubs.data||[],trials:trials.data||[]};
