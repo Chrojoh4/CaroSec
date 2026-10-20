@@ -9,10 +9,17 @@
   },
   "scripts": {
     "dev": "node src/server.js",
-    "test": "node --test",
+    "test": "node --test tests/*.test.js",
     "demo": "node src/demo.js",
     "export:sample": "node src/export-sample.js",
     "check:supabase": "node --env-file=.env.local src/check-supabase.js",
     "build": "node build.js"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "esbuild": "0.25.12"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0"
   }
 }

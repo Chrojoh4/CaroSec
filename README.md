@@ -1,5 +1,7 @@
 # CARO Trial Management
 
+Hosted staff foundation: `npm ci` then `npm run build` produces staff sign-in, account registration, club setup and RLS-filtered trial lists for Vercel. The browser-safe configuration lives in `hosted/public-config.json`; no secret key is bundled. Set Supabase Auth Site URL to `https://carosec.vercel.app` and allow `https://carosec.vercel.app/` as a redirect. See `docs/hosted-foundation.md` for verified scope and remaining hosted work. The local secretary and PDF tools below continue separately.
+
 Independent secretary software for the Canadian Association of Rally Obedience, inspired by the workflows of the existing C-WAGS system. All new work lives in `E:\CARO`.
 
 This project includes a local trial application wizard, premium builder, online-style entry form, fillable entry PDF and secretary desk. No Supabase or Vercel account is needed for local testing. Shared public entry processing and secure staff accounts require those services. No production or C-WAGS records are included.
@@ -74,6 +76,10 @@ Project planning stays in browser storage; operational records persist atomicall
 
 ## Hosted build safety
 
-`npm run build` produces only a public holding page. Vercel uses `vercel.json` with the `public` output directory; it does not run the local secretary server or publish its APIs. GitHub Pages can use the root holding page. The secure hosted application and Supabase data adapter are still in development. Keep Vercel Root Directory at the repository root. Source code in GitHub does not imply online entries are ready.
+`npm run build` produces the hosted staff login and club workspace. Vercel uses `vercel.json` with the `public` output directory; it does not run the local secretary server or publish its APIs. GitHub Pages can use the root holding page. Hosted trial editing and entry processing remain in development. Keep Vercel Root Directory at the repository root. Source code in GitHub does not imply online entries are ready.
 
 Downloaded CARO reference documents, generated previews, local records and actual environment files are intentionally excluded from source upload. Python/ReportLab is required only for local PDF generation.
+
+## Hosted foundation preparation
+
+The user applied the foundation SQL and confirmed RLS on all 12 tables; see [hosted-foundation.md](docs/hosted-foundation.md) for access status and boundaries. The database policy tests use disposable embedded PostgreSQL. Run `npm ci` before `npm test` to install the pinned dependencies. This supersedes earlier no-install instructions for the dependency-free local version. The hosted staff screen is separate from the local application/secretary desk.
