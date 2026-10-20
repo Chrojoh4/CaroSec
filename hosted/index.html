@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>CARO Trial Secretary</title><link rel="stylesheet" href="/staff.css"><script type="module" src="/staff.js"></script></head>
+<body><header><span>CARO</span><p>Trial Secretary</p></header><main>
+<h1>Your club. Your trials. One desk.</h1><p>Plan the day and keep your trial records together.</p>
+<p id="status" role="status" aria-live="polite">Connecting securely…</p>
+<section id="login" hidden><h2>Staff sign in</h2><form id="auth-form">
+<label for="email">Email address</label><input id="email" type="email" autocomplete="username" required maxlength="254">
+<label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128">
+<div class="actions"><button type="submit">Sign in</button><button type="button" id="signup" class="secondary">Create staff account</button></div></form>
+<p>New accounts do not gain access to another club’s records. After confirming your email, return here to sign in.</p></section>
+<section id="workspace" hidden><div class="actions"><h2>Club workspace</h2><button id="signout" class="secondary">Sign out</button></div><p id="identity"></p>
+<h3>Your clubs</h3><div id="clubs"></div><h3>Set up a club</h3><form id="club-form">
+<label for="club-name">Club name</label><input id="club-name" required maxlength="150">
+<label for="timezone">Club timezone</label><select id="timezone"><option value="America/Vancouver">Pacific — Vancouver</option><option value="America/Edmonton">Mountain — Edmonton</option><option value="America/Regina">Saskatchewan — Regina</option><option value="America/Winnipeg">Central — Winnipeg</option><option value="America/Toronto">Eastern — Toronto</option><option value="America/Halifax">Atlantic — Halifax</option><option value="America/St_Johns">Newfoundland — St. John’s</option><option value="America/Whitehorse">Yukon — Whitehorse</option></select>
+<button type="submit">Create club</button></form>
+<h3>Trials you can access</h3><div id="trials"></div><button id="refresh" class="secondary">Refresh workspace</button></section>
+<footer>Online trial entries are not open yet. Club setup is available to signed-in staff.</footer>
+</main></body></html>
