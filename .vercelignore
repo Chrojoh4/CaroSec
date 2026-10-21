@@ -1,0 +1,14 @@
+.env*
+node_modules/
+data/
+output/
+tmp/
+docs/reference/
+docs/source-extracts/
+.git/
+.codex/
+.agents/
+__pycache__/
+*.pyc
+.venv/
+requirements-dev.txt

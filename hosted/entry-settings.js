@@ -1,0 +1,46 @@
+export function mountEntrySettings({client,container,action,message}){
+ let generation=0,dirty=false;
+ const el=(tag,text)=>{const node=document.createElement(tag);if(text)node.textContent=text;return node;};
+ function clear(){generation++;dirty=false;container.hidden=true;container.replaceChildren();}
+ async function open(trial){
+  clear();const ticket=generation;container.hidden=false;container.append(el('h2','Entry pricing and capacity'),el('p','Map every finalized round to a saved premium fee. This private setup does not publish a premium or open entry forms. Prices lock after the first hosted entry.'));
+  if(trial.application_state!=='finalized'){container.append(el('p','Finalize the application before mapping entry prices.'));return;}
+  const results=await Promise.all([
+   client.from('caro_entry_settings').select('revision,premium_draft_revision,pricing,agreement_version').eq('trial_id',trial.id).maybeSingle(),
+   client.from('caro_premium_drafts').select('revision,content').eq('trial_id',trial.id).maybeSingle(),
+   client.from('caro_events').select('id,official_round,local_date,format,level,judge_name').eq('trial_id',trial.id).order('official_round')
+  ]);
+  if(ticket!==generation)return;const failed=results.find(result=>result.error);if(failed)throw new Error(failed.error.message);
+  const [settings,draft,events]=results.map(result=>result.data);
+  if(!draft||!draft.content.fees?.length){container.append(el('p','Save premium fees, opening/closing dates and the host agreement first.'));return;}
+  const stale=settings&&settings.premium_draft_revision!==draft.revision;
+  if(stale)container.append(el('p','The premium has changed since this setup. Review and select every price again before saving.'));
+  container.append(el('p','Entry dates from the premium: '+(draft.content.opens||'Not set')+' to '+(draft.content.closes||'Not set')),el('h3','Host agreement to review'),el('p',draft.content.waiver||'No agreement saved.'));
+  const form=el('form'),rows=[];
+  for(const event of events){
+   const previous=stale?null:settings?.pricing.find(row=>row.event_id===event.id),box=el('fieldset');box.append(el('legend','Round '+event.official_round+' · '+event.local_date+' · '+event.level+' '+event.format),el('p','Judge: '+event.judge_name));
+   function selectFee(text,saved,optional){const label=el('label',text),select=el('select'),blank=el('option',optional?'FEO not offered':'Select a saved premium fee');blank.value='';select.append(blank);select.required=!optional;
+    draft.content.fees.forEach((fee,index)=>{const option=el('option',fee.label+' · CAD '+(fee.cents/100).toFixed(2)+' · '+fee.unit);option.value=String(index);select.append(option);});
+    if(saved){const index=draft.content.fees.findIndex(fee=>fee.cents===saved.cents&&fee.label===saved.label&&fee.unit===saved.unit);if(index>=0)select.value=String(index);}
+    label.append(select);box.append(label);return select;
+   }
+   const fee=selectFee('Competitive fee',previous?.fee,false),feo=selectFee('FEO fee (optional)',previous?.feoFee,true);
+   const basisLabel=el('label','How the selected fee is charged'),basis=el('select');
+   for(const [value,text] of event.format==='Working'?[['exercise','Per selected Working exercise']]:[['','Select the fee basis'],['entry','Per event entry / participant group'],['dog','Per participating dog']]){const option=el('option',text);option.value=value;basis.append(option);}
+   basis.required=true;if(previous)basis.value=previous.basis;basisLabel.append(basis);box.append(basisLabel);
+   const capacityLabel=el('label','Maximum accepted entry orders in this event'),capacity=el('input');capacity.type='number';capacity.min='1';capacity.max='1000';capacity.step='1';capacity.required=true;capacity.value=String(previous?.capacity||50);capacityLabel.append(capacity);box.append(capacityLabel);
+   rows.push({event,fee,feo,basis,capacity});form.append(box);
+  }
+  const agreementLabel=el('label','Reviewed agreement version / reference'),agreement=el('input');agreement.required=true;agreement.maxLength=200;agreement.value=settings?.agreement_version||'';agreementLabel.append(agreement);form.append(agreementLabel);
+  const confirmLabel=el('label'),confirmed=el('input');confirmed.type='checkbox';confirmed.required=true;confirmLabel.className='review-check';confirmLabel.append(confirmed,document.createTextNode(' I reviewed the agreement, each fee basis, FEO availability and event capacities.'));form.append(confirmLabel);
+  const save=el('button','Save private entry setup');save.type='submit';form.append(save);form.addEventListener('input',()=>{dirty=true;});form.addEventListener('change',()=>{dirty=true;});
+  form.addEventListener('submit',event=>{event.preventDefault();action(async()=>{
+   const pricing=rows.map(row=>({event_id:row.event.id,fee_index:Number(row.fee.value),feo_index:row.feo.value===''?null:Number(row.feo.value),basis:row.basis.value,capacity:Number(row.capacity.value)}));
+   const inputs=[...form.querySelectorAll('input,select')];inputs.forEach(input=>input.disabled=true);
+   let result;try{result=await client.rpc('caro_save_entry_settings',{p_trial:trial.id,p_revision:settings?.revision??-1,p_premium_revision:draft.revision,p_pricing:pricing,p_agreement:agreement.value.trim(),p_confirmed:confirmed.checked});}finally{inputs.forEach(input=>input.disabled=false);}
+   if(ticket!==generation)return;if(result.error)throw new Error(result.error.message);dirty=false;await open(trial);message('Private event prices and capacities saved. Online entries remain closed.');
+  });});
+  container.append(form);container.scrollIntoView({behavior:'smooth'});
+ }
+ return {open,clear,canLeave(){return !dirty||confirm('Leave entry setup without saving?');}};
+}

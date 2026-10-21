@@ -1,7 +1,11 @@
 import { resolve, sep } from 'node:path';
-import { readFile, mkdir, stat } from 'node:fs/promises';
+import { readFile, mkdir, stat,unlink } from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import {premiumPdfPacket} from './domain/premium-pdf.js';
+import {judgePacket} from './domain/judge-packet.js';
 import { execFile } from 'node:child_process';
 import { LocalRecords } from './adapters/local-records.js';
+import {withdrawRun,changeRunStatus} from './domain/secretary.js';
 import { DeskError, makeTrialConfig, installTrial, submitEntry, receipt, changeEntryStatus, postFinance, postExpense, setRunningOrder, recordScore, completeEvent, approveMoveUp, recordAccommodation, recordIncident, recordTrialAdmin, recordRibbonClaim } from './domain/secretary.js';
 export function createLocalApi(root,port) {
   const path=resolve(root,process.env.CARO_RECORDS_FILE || 'data/records.json');
@@ -11,6 +15,14 @@ export function createLocalApi(root,port) {
   async function body(request) {
     if(!request.headers['content-type']?.startsWith('application/json'))throw new DeskError('JSON content is required.',415);
     let text='';for await(const chunk of request){text+=chunk;if(Buffer.byteLength(text)>300000)throw new DeskError('Request is too large.',413);}try{return JSON.parse(text);}catch{throw new DeskError('Invalid JSON.');}
+  }
+  async function exportPdf(script,packet,filename,response){
+    const directory=resolve(root,'data/pdf');await mkdir(directory,{recursive:true});const pdf=resolve(directory,'export-'+randomUUID()+'.pdf');
+    const python=process.env.CARO_PYTHON||resolve(process.env.USERPROFILE||'', '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe');
+    try{
+      await new Promise((done,reject)=>{const child=execFile(python,[resolve(root,'src/pdf',script),pdf],{cwd:root,timeout:30000,maxBuffer:2000000,windowsHide:true,env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'}},error=>error?reject(error):done());child.stdin.on('error',()=>{});child.stdin.end(JSON.stringify(packet));});
+      const bytes=await readFile(pdf);response.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="${filename}"`,'Cache-Control':'no-store'});response.end(bytes);
+    }finally{await unlink(pdf).catch(()=>{});await unlink(pdf+'.next').catch(()=>{});}
   }
   async function lookup(id) {
     if(!/^\d{1,12}$/.test(id))throw new DeskError('The public CARO lookup supports a numeric dog ID. You can still enter manually.');
@@ -28,7 +40,7 @@ export function createLocalApi(root,port) {
       } catch {return {discipline,status:'unavailable',records:[]};}
     }));
     const value={queriedDogId:id,sourceUrl:'https://canadianrallyo.ca/quick-results/',fetchedAt:new Date().toISOString(),sourceAsOf:null,parts};
-    if(cache.size>=100)cache.delete(cache.keys().next().value);cache.set(id,{time:Date.now(),value});return value;
+    if(parts.every(part=>part.status!=='unavailable')){if(cache.size>=100)cache.delete(cache.keys().next().value);cache.set(id,{time:Date.now(),value});}return value;
   }
   return async function handle(request,response,url) {
     if(!url.pathname.startsWith('/api/'))return false;
@@ -37,6 +49,10 @@ export function createLocalApi(root,port) {
       if(!allowed.has(request.headers.host))throw new DeskError('Local workspace host required.',403);
       const origin=request.headers.origin;if(origin&&!allowed.has(new URL(origin).host))throw new DeskError('Cross-origin writes are not permitted.',403);
       if(request.method==='GET'&&url.pathname==='/api/desk'){json(response,200,await records.read());return true;}
+      if(request.method==='GET'&&url.pathname==='/api/practice-workspace'){
+        if(process.env.CARO_RECORDS_FILE!=='data/practice/records.json')throw new DeskError('Practice workspace is available only in the isolated practice server.',404);
+        const {sampleScenario}=await import('./sample-scenario.js');const {premium,trial}=await sampleScenario();json(response,200,{draft:premium,trial,editions:[]});return true;
+      }
       if(request.method==='GET'&&url.pathname==='/api/public-trial'){
         const state=await records.read(),id=url.searchParams.get('trial'),trial=Object.hasOwn(state.trials,id)&&state.trials[id];if(!trial)throw new DeskError('Trial not found. Prepare the entry form from the secretary desk first.',404);json(response,200,trial);return true;
       }
@@ -45,6 +61,21 @@ export function createLocalApi(root,port) {
       }
       if(request.method==='GET'&&url.pathname==='/api/dog-results'){
         const key=request.socket.remoteAddress,rate=rates.get(key)||{since:Date.now(),count:0};if(Date.now()-rate.since>60000){rate.since=Date.now();rate.count=0;}if(++rate.count>20)throw new DeskError('Please wait a minute before another lookup.',429);rates.set(key,rate);json(response,200,await lookup(url.searchParams.get('id')||''));return true;
+      }
+      if(request.method==='GET'&&url.pathname==='/api/judge-sheets'){
+        const state=await records.read(),packet=judgePacket(state,url.searchParams.get('trial'),url.searchParams.get('event'));
+        const directory=resolve(root,'data/pdf');await mkdir(directory,{recursive:true});const pdf=resolve(directory,'judges-'+randomUUID()+'.pdf');
+        const python=process.env.CARO_PYTHON||resolve(process.env.USERPROFILE||'', '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe');
+        try{
+          await new Promise((done,reject)=>{const child=execFile(python,[resolve(root,'src/pdf/judge_sheets.py'),pdf],{cwd:root,timeout:30000,maxBuffer:2000000,windowsHide:true,env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'}},error=>error?reject(error):done());child.stdin.on('error',()=>{});child.stdin.end(JSON.stringify(packet));});
+          const bytes=await readFile(pdf);response.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="CARO-judge-working-sheets.pdf"','Cache-Control':'no-store'});response.end(bytes);
+        }finally{await unlink(pdf).catch(()=>{});await unlink(pdf+'.next').catch(()=>{});}
+        return true;
+      }
+      if(request.method==='GET'&&url.pathname==='/api/official-form'){
+        const files={rally:'scoresheet-rally.pdf',working:'scoresheet-working-2026.pdf',rallyRecord:'judges-record-rally.pdf',workingRecord:'judges-record-working-2026.pdf',catalogue:'trial-catalogue.pdf',fees:'trial-fee-schedule-2026.pdf'};
+        const file=files[url.searchParams.get('type')];if(!file)throw new DeskError('Form not found.',404);
+        response.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="${file}"`,'Cache-Control':'no-store'});response.end(await readFile(resolve(root,'docs/reference',file)));return true;
       }
       if(request.method==='GET'&&url.pathname==='/api/entry-form'){
         const state=await records.read(),id=url.searchParams.get('trial'),trial=state.trials[id];if(!trial||!/^[a-f0-9]{24}$/.test(id||''))throw new DeskError('Trial not found.',404);
@@ -67,11 +98,17 @@ export function createLocalApi(root,port) {
       }
       if(request.method!=='POST')throw new DeskError('Endpoint not found.',404);
       const input=await body(request),now=new Date().toISOString();
+      if(url.pathname==='/api/premium-pdf'){
+        let packet;try{packet=premiumPdfPacket(input.draft);}catch(error){throw new DeskError(error.message);}
+        await exportPdf('premium.py',packet,'CARO-trial-premium.pdf',response);return true;
+      }
       if(url.pathname==='/api/entries'){json(response,201,await records.mutate(undefined,state=>submitEntry(state,input,'online',now)));return true;}
       if(!Number.isInteger(input.expectedRevision))throw new DeskError('Refresh the secretary records before saving.',409);
       const commands={
         '/api/desk/prepare':state=>installTrial(state,makeTrialConfig(input),now),
         '/api/desk/status':state=>changeEntryStatus(state,input,now),
+        '/api/desk/withdraw-run':state=>withdrawRun(state,input,now),
+        '/api/desk/run-status':state=>changeRunStatus(state,input,now),
         '/api/desk/manual-entry':state=>submitEntry(state,input.entry,['email','paper'].includes(input.channel)?input.channel:'paper',now),
         '/api/desk/finance':state=>postFinance(state,input,now),
         '/api/desk/expense':state=>postExpense(state,input,now),

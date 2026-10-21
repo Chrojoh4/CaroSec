@@ -22,10 +22,10 @@ def page():
  global y
  if y:footer();c.showPage()
  c.setFillColor(GREEN);c.rect(0,680,612,112,fill=1,stroke=0);c.setFillColor(white)
- c.setFont('Helvetica-Bold',11);c.drawString(52,766,'CARO TRIAL ENTRY FORM'+(' - FICTIONAL SAMPLE' if trial.get('fictional') else ''))
+ c.setFont('Helvetica-Bold',12);c.drawString(52,766,'CARO TRIAL ENTRY FORM'+(' - FICTIONAL SAMPLE' if trial.get('fictional') else ''))
  title=Paragraph(escape(clean(trial['title'])),ParagraphStyle('title',fontName='Times-Roman',fontSize=24,leading=26,textColor=white))
  _,h=title.wrap(508,60);title.drawOn(c,52,746-h)
- c.setFont('Helvetica',11);c.drawString(52,696,clean(trial['date'])+(' to '+clean(trial['endDate']) if trial.get('endDate') and trial['endDate']!=trial['date'] else '')+' | '+clean(trial.get('trialNumber') or 'Approval pending / sample'))
+ c.setFont('Helvetica',12);c.drawString(52,696,clean(trial['date'])+(' to '+clean(trial['endDate']) if trial.get('endDate') and trial['endDate']!=trial['date'] else '')+' | '+clean(trial.get('trialNumber') or 'Approval pending / sample'))
  y=654
 
 def ensure(height):
@@ -80,10 +80,12 @@ page();section('1. Handler & contact',150)
 row([('handler_name','Handler name',52,240),('handler_email','Email address',320,240)])
 row([('handler_phone','Phone number',52,240),('handler_address','Mailing address',320,240)])
 dog('dog1','2. Your dog')
-dog('dog2','3. Partner dog - Team / Brace only')
-row([('partner_handler','Partner handler (Brace: same handler as above)',52,508)])
-note('Team has two handlers and two dogs; Brace has one handler and two dogs. For a bye dog, contact the secretary rather than entering CARO ID 2799 as an owned dog.')
-section('4. Choose your events',190)
+has_partner=any(e['format'] in ('Team','Brace') for e in trial['events'])
+if has_partner:
+ dog('dog2','3. Partner dog - Team / Brace only')
+ row([('partner_handler','Partner handler (Brace: same handler as above)',52,508)])
+ note('Team has two handlers and two dogs; Brace has one handler and two dogs. For a bye dog, contact the secretary rather than entering CARO ID 2799 as an owned dog.')
+section(('4' if has_partner else '3')+'. Choose your events',190)
 note('Tick each event you wish to enter. Select an offered stream or Working exercise level. FEO applies to the entire round. Complete both dogs for Team / Brace. Fees are in CAD; check per-dog or per-exercise units.')
 for event in trial['events']:
  # Keep the full event block on one page, including all offered exercises.
@@ -108,14 +110,19 @@ for event in trial['events']:
    row([(f"r{event['round']}_{exercise['id']}_level",exercise['name']+' - choose level, or leave Select...',52,508,event['levels'])])
  else:row([(f"r{event['round']}_stream",'Stream',52,180,event['levels']),(f"r{event['round']}_amount",'Event fee (CAD)',280,280)])
  y-=12
-section('5. Fees, payment & submission',140)
+section(('5' if has_partner else '4')+'. Fees, payment & submission',140)
 note('Calculate the total using the per-dog / per-exercise units stated above.')
 row([('total_cad','Total entry fees (CAD)',52,240),('payment_reference','Payment method / reference',320,240)])
+note('Agreement / premium reference: '+str(trial.get('premiumVersion') or 'Contact secretary'))
 note(trial.get('payment',''))
 note('Return the completed form to '+trial['email']+'. Save a completed copy first. Submission is pending secretary review; it does not confirm acceptance or payment. '+trial.get('confirmations',''))
-section('6. Requests & entry agreement',130)
+section(('6' if has_partner else '5')+'. Requests & entry agreement',130)
 row([('accommodation','Accommodation request (arrange supporting documents with secretary)',52,508,None,65)])
-note(trial.get('accommodations',''));note('Move-ups: '+trial.get('moveups',''));note('Refunds: '+trial.get('refunds',''))
+note(trial.get('accommodations',''))
+policies=['Move-ups: '+trial.get('moveups',''),'Refunds: '+trial.get('refunds','')]
+policy_height=sum(para(value).wrap(508,10000)[1]+14 for value in policies)
+section('Move-up and refund policies',min(policy_height+10,500))
+for value in policies:note(value)
 agreement=trial.get('waiver','')
 _,agreement_height=para(agreement).wrap(508,10000)
 section('Agreement - read before signing',min(agreement_height+240,540));note(agreement)

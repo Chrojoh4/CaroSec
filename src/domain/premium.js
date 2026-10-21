@@ -20,6 +20,7 @@ export function validatePremium(draft) {
   if (draft.closes > draft.date && (!draft.allowLate || !draft.dayOf?.trim())) errors.push('Closing after the trial date requires an explicitly enabled late/day-of entry policy.');
   try { new Intl.DateTimeFormat('en-CA', { timeZone: draft.timezone }).format(); } catch { errors.push('Enter a valid IANA timezone.'); }
   if (!safeUrl(draft.entryUrl)) errors.push('A valid online entry URL is required.');
+  if (!safeUrl(draft.entryPdfUrl)) errors.push('A valid downloadable email / paper entry PDF URL is required.');
   if (!draft.events?.length) errors.push('Add at least one offered event.');
   for (const event of draft.events ?? []) {
     if (!event.judge?.trim()) errors.push(`Round ${event.round}: assign a judge.`);

@@ -9,8 +9,12 @@
   },
   "scripts": {
     "dev": "node src/server.js",
+    "dev:practice": "node src/practice-server.js",
     "test": "node --test tests/*.test.js",
     "demo": "node src/demo.js",
+    "sample:trial": "node src/sample-scenario.js",
+    "records:backup": "node scripts/records-backup.js",
+    "rehearse:trial": "node src/trial-rehearsal.js",
     "export:sample": "node src/export-sample.js",
     "check:supabase": "node --env-file=.env.local src/check-supabase.js",
     "build": "node build.js"

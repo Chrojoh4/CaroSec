@@ -9,6 +9,15 @@ function instant(value) {
   }
   return new Date(value);
 }
+export function receivedInstant(value,recordedAt){
+  if(value===undefined||value===null||value==='')return null;
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)||!validCalendarDate(value.slice(0,10)))throw new RangeError('Received time must be an ISO timestamp with seconds and Z or an explicit offset.');
+  const parts=value.slice(11,19).split(':').map(Number);
+  if(parts[0]>23||parts[1]>59||parts[2]>59)throw new RangeError('Received time has an invalid clock time.');
+  const date=instant(value),recorded=instant(recordedAt);
+  if(date>recorded)throw new RangeError('Received time cannot be later than the recording time.');
+  return date.toISOString();
+}
 export function dateInZone(value, timeZone) {
   if (typeof timeZone !== 'string' || !timeZone.trim()) throw new RangeError('An explicit trial timezone is required.');
   const parts = new Intl.DateTimeFormat('en-CA', {

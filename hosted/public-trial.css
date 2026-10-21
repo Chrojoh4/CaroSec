@@ -1,0 +1,4 @@
+.published-premium{max-width:74rem;margin:auto}.preserve-lines{white-space:pre-wrap;overflow-wrap:anywhere}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:1rem;border:1px solid #bbc9c2;vertical-align:top}section{margin:2rem 0}h2{break-after:avoid}tr{break-inside:avoid}#paper-entry{display:inline-block;padding:1rem}#controls{margin:1.5rem 0}
+@media print{body{background:white;color:#111;font-size:12pt}header,#controls,#entry-status,#status{display:none}main,.published-premium{max-width:none;padding:0;margin:0;box-shadow:none}table{font-size:12pt}th,td{padding:.35rem}thead{display:table-header-group}.table-scroll{overflow:visible}section{break-inside:auto}h1,h2,h3{break-after:avoid}p{orphans:3;widows:3}a{color:#111}@page{size:letter;margin:18mm}}
+
+@media print{button{display:none}.hosted-intake{display:none}}

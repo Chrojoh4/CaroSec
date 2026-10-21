@@ -4,7 +4,9 @@ import { renderPremium, validatePremium, publishEdition, sourceKey, escapeHtml a
 import { SHARED_KEYS, createTrialWorkspace, hydrateTrial, premiumFromTrial, syncTrialFromPremium } from '/trial-workspace.js';
 import { createDesk } from '/desk.js';
 import { createTrialWizard } from '/trial-wizard.js';
-const KEY = 'caro-premium-studio-v1';
+let practiceWorkspace=null;
+try{const response=await fetch('/api/practice-workspace');if(response.ok)practiceWorkspace=await response.json();}catch{}
+const KEY = practiceWorkspace?'caro-practice-studio-v1':'caro-premium-studio-v1';
 let draft = sampleDraft(), editions = [], section = 'details', view = 'studio', template = null, trial, page = 'application';
 let failedStored = null, storedRaw = null, canSave = true;
 const $ = selector => document.querySelector(selector);
@@ -36,6 +38,7 @@ try {
   $('#storage-warning').textContent = 'Saved data could not be loaded. The original is preserved. Backup project will download the original data; import a valid backup to resume saving.';
 }
 try { const value = localStorage.getItem(KEY + '-template'); if (value) template = JSON.parse(value); } catch { template = null; }
+if(!storedRaw&&practiceWorkspace){draft=practiceWorkspace.draft;trial=practiceWorkspace.trial;editions=[];}
 trial ??= createTrialWorkspace(draft);
 draft = premiumFromTrial(trial, draft);
 function toast(message) { $('#toast').textContent = message; $('#toast').classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => $('#toast').classList.remove('show'), 4500); }
@@ -143,6 +146,14 @@ document.addEventListener('click', async event => {
     if (button.id === 'add-fee') { draft.fees.push({ label: '', cents: 0, unit: 'per dog / event' }); change(); renderEditor(); }
     if (button.id === 'backup') { download(failedStored ? 'caro-original-recovery.json' : 'caro-premium-project.json', failedStored || JSON.stringify({ draft, editions, trial }, null, 2), 'application/json'); toast('Project backup downloaded.'); }
     if (button.id === 'download') await exportHtml(draft);
+    if (button.id === 'premium-pdf') {
+      button.disabled=true;
+      try{
+        const response=await fetch('/api/premium-pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({draft})});
+        if(!response.ok){const result=await response.json();throw new Error(result.error||'Premium PDF could not be generated.');}
+        download('CARO-trial-premium.pdf',await response.arrayBuffer(),'application/pdf');toast('Premium PDF downloaded. Review every page before distribution.');
+      }finally{button.disabled=false;}
+    }
     if (button.id === 'print') { document.querySelectorAll('.agreement').forEach(node => node.open = true); window.print(); }
     if (button.id === 'publish') { const edition = publishEdition(draft, editions); editions.push(edition); save(); renderAll(); toast(`Edition ${edition.version} saved locally. Nothing was published online.`); }
     if (button.id === 'template-save') {
@@ -207,3 +218,4 @@ window.addEventListener('storage', event => {
   } catch { toast('A different tab saved data that could not be loaded. Export a backup before continuing.'); }
 });
 renderAll(); showPage('application');
+if(practiceWorkspace){document.querySelector('.local-badge').textContent='FICTIONAL PRACTICE WORKSPACE';toast('Practice workspace: separate fictional records and browser draft.');}

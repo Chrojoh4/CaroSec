@@ -13,6 +13,7 @@ test('Supabase migration compiles and enforces club isolation, private data, gra
  grant usage on schema auth to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated,service_role;
  insert into auth.users values ${Object.values(ids).map(id=>`('${id}')`).join(',')};`);
  await db.exec(await readFile(new URL('../supabase/migrations/202610190001_caro_foundation.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/migrations/20261020153706_hosted_trial_drafts.sql',import.meta.url),'utf8'));
  const as=async(role,user='')=>{await db.exec(`reset role;set role ${role}`);await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user]);await db.query("select set_config('request.jwt.claims','{}',false)");};
  const one=async(sql,params=[]) => (await db.query(sql,params)).rows[0];
  let clubA,clubB,trialA,trialB,event,premium,entry;
@@ -69,6 +70,31 @@ test('Supabase migration compiles and enforces club isolation, private data, gra
   await assert.rejects(()=>db.query('delete from public.caro_ledger'),/permission denied/);
   await assert.rejects(()=>db.query("update public.caro_premium_versions set snapshot='{}'"),/permission denied/);
   await db.exec('reset role');await assert.rejects(()=>db.query('update public.caro_ledger set cents=1'),/Append-only/);
+ });
+ await t.test('hosted drafts restrict clubs, reject stale edits and append one audit per successful save',async()=>{
+  const draftId='10000000-0000-0000-0000-000000000001';
+  const sql='select public.caro_save_trial_draft($1,$2,$3,$4,$5,$6,$7,$8) as result';
+  const args=[draftId,clubA,-1,'Draft trial','2027-01-02','2027-01-03','America/Edmonton',{host:'Club A',events:[]}];
+  await as('anon');await assert.rejects(()=>db.query(sql,args),/permission denied/);
+  await as('authenticated',ids.other);await assert.rejects(()=>db.query(sql,args),/access denied/);
+  await as('authenticated',ids.scorer);await assert.rejects(()=>db.query(sql,args),/access denied/);
+  await as('authenticated',ids.owner);
+  assert.equal((await one(sql,args)).result.revision,0);
+  assert.equal((await one(sql,args)).result.revision,0); // retry does not duplicate
+  assert.equal((await one('select count(*)::int n from public.caro_audit where trial_id=$1',[draftId])).n,1);
+  const edit=[...args];edit[2]=0;edit[3]='Updated trial';
+  assert.equal((await one(sql,edit)).result.revision,1);
+  await assert.rejects(()=>db.query(sql,edit),/Another change/);
+  const malicious=[...edit];malicious[2]=1;malicious[7]={externalStatus:'approved'};
+  await assert.rejects(()=>db.query(sql,malicious),/Unknown draft/);
+  const badEvent=[...edit];badEvent[2]=1;badEvent[7]={events:[{id:'e1',dayId:'2028-01-01',format:'Regular',level:'Novice',stream:'A',judge:'Judge',exercises:''}]};
+  await assert.rejects(()=>db.query(sql,badEvent),/Event date/);
+  await as('authenticated',ids.secretary);await assert.rejects(()=>db.query(sql,[...edit.slice(0,2),1,...edit.slice(3)]),/access denied/);
+  await as('service_role');await db.query('insert into public.caro_trial_assignments(club_id,trial_id,user_id) values($1,$2,$3)',[clubA,draftId,ids.secretary]);
+  await as('authenticated',ids.secretary);assert.equal((await one(sql,[...edit.slice(0,2),1,...edit.slice(3)])).result.revision,2);
+  await as('service_role');await db.query("update public.caro_trials set application_state='finalized' where id=$1",[draftId]);
+  await as('authenticated',ids.owner);await assert.rejects(()=>db.query(sql,[...edit.slice(0,2),2,...edit.slice(3)]),/Finalized/);
+  assert.equal((await one('select count(*)::int n from public.caro_audit where trial_id=$1',[draftId])).n,3);
  });
  await t.test('finalized official events lock, score revisions append, completed results reject new revisions',async()=>{
   await as('service_role');await assert.rejects(()=>db.query("update public.caro_events set official_round=2 where id=$1",[event]),/locked/);

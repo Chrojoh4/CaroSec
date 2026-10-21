@@ -21,6 +21,11 @@ const routes = new Map([
   ['/entry.js', ['web/entry.js', 'text/javascript']],
   ['/entry-form.js', ['web/entry-form.js', 'text/javascript']],
   ['/reports.js', ['web/reports.js', 'text/javascript']],
+  ['/run-register.js', ['web/run-register.js', 'text/javascript']],
+  ['/activity-journal.js', ['web/activity-journal.js', 'text/javascript']],
+  ['/trial-summary.js', ['web/trial-summary.js', 'text/javascript']],
+  ['/run-status.js', ['src/domain/run-status.js', 'text/javascript']],
+  ['/src/domain/run-status.js', ['src/domain/run-status.js', 'text/javascript']],
 ]);
 const server = http.createServer(async (request, response) => {
   const url=new URL(request.url,'http://localhost');

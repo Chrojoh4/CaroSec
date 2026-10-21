@@ -1,0 +1,82 @@
+{
+  "fixtureVersion": 1,
+  "purpose": "Fictional ongoing test trial. Not sanctioned. Never publish or accept real entries.",
+  "title": "RallyPaws Practice Weekend — TEST ONLY",
+  "clubName": "RallyPaws",
+  "start_date": "2027-04-17",
+  "end_date": "2027-04-18",
+  "timezone": "America/Vancouver",
+  "application_state": "draft",
+  "planning": {
+    "host": "RallyPaws",
+    "organizer": "Alex Morgan (fictional test organizer)",
+    "organizerEmail": "organizer@example.com",
+    "memberReference": "TEST ONLY — no verified membership",
+    "secretary": "Jamie Taylor (fictional test secretary)",
+    "email": "secretary@example.com",
+    "chair": "Casey Reed (fictional test chair)",
+    "chairEmail": "chair@example.com",
+    "venue": "Practice Paws Hall — FICTIONAL",
+    "address": "Fictional training venue, British Columbia — not a real address",
+    "surface": "Sample nonslip matting — unverified",
+    "ringWidth": "50",
+    "ringLength": "60",
+    "nearbyNotes": "TEST ONLY. Nearby-trial review, judge authorization and membership checks have not been completed. Dimensions are test inputs, not a CARO compliance claim.",
+    "events": [
+      {
+        "id": "rp-test-01",
+        "dayId": "2027-04-17",
+        "level": "Novice",
+        "format": "Regular",
+        "stream": "B — test offering, review required",
+        "judge": "Robin Ellis (fictional)",
+        "exercises": ""
+      },
+      {
+        "id": "rp-test-02",
+        "dayId": "2027-04-17",
+        "level": "Intermediate",
+        "format": "Regular",
+        "stream": "B — test offering, review required",
+        "judge": "Robin Ellis (fictional)",
+        "exercises": ""
+      },
+      {
+        "id": "rp-test-03",
+        "dayId": "2027-04-17",
+        "level": "Advanced",
+        "format": "Team",
+        "stream": "B — test offering, review required",
+        "judge": "Morgan Lee (fictional)",
+        "exercises": ""
+      },
+      {
+        "id": "rp-test-04",
+        "dayId": "2027-04-18",
+        "level": "Novice",
+        "format": "Regular",
+        "stream": "B — test offering, review required",
+        "judge": "Morgan Lee (fictional)",
+        "exercises": ""
+      },
+      {
+        "id": "rp-test-05",
+        "dayId": "2027-04-18",
+        "level": "Advanced",
+        "format": "Brace",
+        "stream": "B — test offering, review required",
+        "judge": "Robin Ellis (fictional)",
+        "exercises": ""
+      },
+      {
+        "id": "rp-test-06",
+        "dayId": "2027-04-18",
+        "level": "Working",
+        "format": "Working",
+        "stream": "Rookie — test offering, review required",
+        "judge": "Morgan Lee (fictional)",
+        "exercises": "Drop on Recall (fictional test offering)"
+      }
+    ]
+  }
+}

@@ -13,3 +13,4 @@ docs/reference/
 docs/source-extracts/
 __pycache__/
 *.pyc
+.venv/

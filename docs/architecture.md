@@ -42,6 +42,8 @@ The export arrow represents a human-reviewed file transfer, not an existing API.
 
 ## Key decisions
 
+System-wide Administrator access is a required part of the hosted application. See [administrator.md](administrator.md) for the administration sidebar, cross-club access, protected role assignment, audit requirements and safeguards. The current hosted owner/secretary/scorer foundation does not yet implement this role.
+
 1. **Official identity is separate from execution order.** Each application event receives a stable local ID, official round number and judge. Reordering a draft application changes numbers; scheduling a finalized application does not. A correction to an official assignment requires a distinct approved amendment workflow and evidence, never silently unlocking the snapshot.
 2. **Rally and Working use distinct result structures.** Rally stores a performance result for a participant group. Working stores one outcome for each selected exercise and level, including exercise-level move-ups. Team and Brace use participant records rather than columns named dog1/dog2. Exact composition comes from verified rules.
 3. **Rules are data with provenance.** A bundle includes source references, effective interval, mode applicability, review status and a content hash. A trial pins a bundle. Corrections use a new version and explicit recalculation, never mutate rules underneath historical scores. No current thresholds have been guessed.

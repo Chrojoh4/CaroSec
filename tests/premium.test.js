@@ -4,7 +4,7 @@ import { sampleDraft } from '../web/sample.js';
 import { validatePremium, publishEdition, renderPremium, sourceKey } from '../src/domain/premium.js';
 
 function reviewed() {
-  return { ...sampleDraft(), fictional: false, approved: true, trialNumber: 'TEST-ONLY', approvalEvidence: 'Fictional test evidence', reviewed: true, waiver: 'Host-reviewed test agreement' };
+  return { ...sampleDraft(), entryPdfUrl:'https://example.com/test-entry.pdf',fictional: false, approved: true, trialNumber: 'TEST-ONLY', approvalEvidence: 'Fictional test evidence', reviewed: true, waiver: 'Host-reviewed test agreement' };
 }
 test('fictional draft cannot be saved as an approved edition', () => {
   assert.throws(() => publishEdition(sampleDraft(), []), /approval/);

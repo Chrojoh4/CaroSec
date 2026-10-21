@@ -8,7 +8,80 @@ import {emptyRecords,makeTrialConfig,installTrial,submitEntry,changeEntryStatus,
 import {LocalRecords} from '../src/adapters/local-records.js';
 import {approveMoveUp,recordAccommodation,recordIncident,recordTrialAdmin,recordRibbonClaim} from '../src/domain/secretary.js';
 import {csv,workingReport} from '../web/reports.js';
+import {withdrawRun,changeRunStatus,runningOrder} from '../src/domain/secretary.js';
+import {runStatus} from '../src/domain/run-status.js';
+import {trialSummary} from '../web/trial-summary.js';
+import {activityJournal} from '../web/activity-journal.js';
 const now='2026-10-19T01:00:00Z';
+test('mixed accepted and waitlisted runs charge only accepted selections and stay out of other running orders',()=>{
+ const {state,config}=fixture(1);const a=submitEntry(state,input(config,'partial-a',['e1','e2']),'online',now);
+ changeRunStatus(state,{entryId:a.id,eventId:'e1',status:'accepted'},now);
+ changeRunStatus(state,{entryId:a.id,eventId:'e2',status:'waitlisted'},now);
+ assert.equal(state.entries[0].status,'accepted');assert.equal(runStatus(state.entries[0],'e2'),'waitlisted');assert.equal(entryBalance(state,a.id),2500);
+ assert.equal(runningOrder(state,config.id,'e1').length,1);assert.equal(runningOrder(state,config.id,'e2').length,0);
+ assert.throws(()=>recordScore(state,{entryId:a.id,eventId:'e2',judgeConfirmed:true,outcome:'Q',score:190,elapsedSeconds:60},now),/Only accepted/);
+ assert.throws(()=>changeEntryStatus(state,{entryId:a.id,status:'checked_in'},now),/individual/);
+ changeRunStatus(state,{entryId:a.id,eventId:'e2',status:'accepted',reason:'Place available'},now);assert.equal(entryBalance(state,a.id),5000);
+ assert.throws(()=>changeRunStatus(state,{entryId:a.id,eventId:'e2',status:'accepted'},now),/not available/);assert.equal(entryBalance(state,a.id),5000);
+ assert.equal(activityJournal(state,config.id).filter(row=>row.action==='run.waitlist_promoted').length,1);
+});
+test('per-run waitlist promotion checks capacity and leaves failed operations unchanged',()=>{
+ const {state,config}=fixture(1);const a=submitEntry(state,input(config,'capacity-a',['e1','e2']),'online',now),b=submitEntry(state,input(config,'capacity-b',['e1','e2']),'online',now);
+ changeRunStatus(state,{entryId:a.id,eventId:'e1',status:'accepted'},now);changeRunStatus(state,{entryId:b.id,eventId:'e1',status:'waitlisted'},now);changeRunStatus(state,{entryId:b.id,eventId:'e2',status:'accepted'},now);
+ const before=JSON.stringify(state);assert.throws(()=>changeRunStatus(state,{entryId:b.id,eventId:'e1',status:'accepted'},now),/full/);assert.equal(JSON.stringify(state),before);
+ const summary=trialSummary(state,config.id);assert.equal(summary.events[0].accepted,1);assert.equal(summary.events[0].waitlisted,1);assert.equal(summary.events[1].accepted,1);
+ withdrawRun(state,{entryId:a.id,eventId:'e1',reason:'Free one place'},now);changeRunStatus(state,{entryId:b.id,eventId:'e1',status:'accepted'},now);assert.equal(entryBalance(state,b.id),5000);
+});
+test('whole-entry acceptance after per-run acceptance does not charge an accepted run twice',()=>{
+ const {state,config}=fixture();const a=submitEntry(state,input(config,'whole-a',['e1','e2']),'online',now);changeRunStatus(state,{entryId:a.id,eventId:'e1',status:'waitlisted'},now);changeRunStatus(state,{entryId:a.id,eventId:'e2',status:'waitlisted'},now);
+ changeEntryStatus(state,{entryId:a.id,status:'accepted'},now);assert.equal(entryBalance(state,a.id),5000);assert.equal(state.ledger.length,1);
+ changeRunStatus(state,{entryId:a.id,eventId:'e1',status:'checked_in'},now);assert.equal(state.entries[0].status,'accepted');changeRunStatus(state,{entryId:a.id,eventId:'e2',status:'checked_in'},now);assert.equal(state.entries[0].status,'checked_in');
+});
+test('mixed run states persist and simultaneous last-place promotions cannot both commit',async()=>{
+ await mkdir('tmp/record-tests',{recursive:true});const directory=await mkdtemp(resolve('tmp/record-tests/mixed-')),path=resolve(directory,'records.json'),repo=new LocalRecords(path);
+ const {state,config}=fixture(1);const a=submitEntry(state,input(config,'persist-a',['e1','e2']),'online',now),b=submitEntry(state,input(config,'persist-b',['e1','e2']),'online',now);
+ for(const entry of [a,b])changeRunStatus(state,{entryId:entry.id,eventId:'e1',status:'waitlisted'},now);
+ changeRunStatus(state,{entryId:a.id,eventId:'e2',status:'accepted'},now);
+ await repo.mutate(0,current=>Object.assign(current,state));const revision=(await repo.read()).revision;
+ const attempts=await Promise.allSettled([a,b].map(entry=>repo.mutate(revision,current=>changeRunStatus(current,{entryId:entry.id,eventId:'e1',status:'accepted'},now))));assert.equal(attempts.filter(result=>result.status==='fulfilled').length,1);
+ const loaded=await new LocalRecords(path).read();assert.equal(runningOrder(loaded,config.id,'e1').length,1);assert.equal(runningOrder(loaded,config.id,'e2').length,1);assert.equal(loaded.ledger.reduce((sum,row)=>sum+row.cents,0),5000);
+});
+test('a rejected run in a mixed entry does not block a new submission for that same dog and event',()=>{
+ const {state,config}=fixture();const first=submitEntry(state,input(config,'rejected-run',['e1','e2']),'online',now);changeRunStatus(state,{entryId:first.id,eventId:'e1',status:'rejected',reason:'Wrong selection in test'},now);
+ const next={...input(config,'rejected-run',['e1']),idempotencyKey:'replacement-request'};submitEntry(state,next,'online',now);assert.equal(state.entries.length,2);assert.equal(runStatus(state.entries[0],'e1'),'rejected');
+ assert.throws(()=>withdrawRun(state,{entryId:first.id,eventId:'e1',reason:'Already rejected'},now),/active entered run/);
+});
+test('manual receipt times preserve original instants separately and never trust online backdating',()=>{
+ const {state,config}=fixture();const received='2026-10-18T16:00:00-07:00';const request={...input(config,'received-test'),intakeEvidence:'Signed test form',receivedAt:received};
+ const entry=submitEntry(state,request,'email',now);assert.equal(state.entries[0].receivedAt,'2026-10-18T23:00:00.000Z');assert.equal(state.entries[0].recordedAt,now);
+ const count=state.audit.length;submitEntry(state,request,'email',now);assert.equal(state.audit.length,count);
+ changeEntryStatus(state,{entryId:entry.id,status:'accepted'},now);const payment=postFinance(state,{entryId:entry.id,kind:'payment',amountCents:2500,note:'Received earlier',receivedAt:received},now);assert.equal(payment.receivedAt,'2026-10-18T23:00:00.000Z');
+ const before=JSON.stringify(state);assert.throws(()=>postFinance(state,{entryId:entry.id,kind:'payment',amountCents:100,note:'Bad clock',receivedAt:'2026-10-18T25:00:00Z'},now),/clock/);assert.equal(JSON.stringify(state),before);
+ assert.throws(()=>submitEntry(state,{...input(config,'future-test'),intakeEvidence:'Signed form',receivedAt:'2026-10-20T12:00:00Z'},'paper',now),/later/);
+ const online=submitEntry(state,{...input(config,'online-test'),receivedAt:received},'online',now);assert.equal(state.entries.find(item=>item.id===online.id).receivedAt,now);
+});
+test('withdrawing one run frees its capacity and keeps paid fees and other runs intact',()=>{
+ const {state,config}=fixture(1);const a=submitEntry(state,input(config,'test-a',['e1','e2']),'online',now);
+ changeEntryStatus(state,{entryId:a.id,status:'accepted'},now);postFinance(state,{entryId:a.id,kind:'payment',amountCents:5000,note:'Test payment'},now);
+ setRunningOrder(state,{trialId:config.id,eventId:'e1',entryIds:[a.id]},now);
+ const b=submitEntry(state,input(config,'test-b',['e1']),'online',now);changeEntryStatus(state,{entryId:b.id,status:'waitlisted'},now);
+ const ledger=structuredClone(state.ledger);withdrawRun(state,{entryId:a.id,eventId:'e1',reason:'Handler withdrew this run'},now);
+ assert.deepEqual(state.ledger,ledger);assert.equal(state.entries[0].status,'accepted');assert.deepEqual(state.entries[0].selections.map(line=>line.eventId),['e2']);assert.equal(state.entries[0].withdrawnRuns[0].selection.amountCents,2500);assert.deepEqual(state.orders[config.id+':e1'],[]);
+ assert.equal(state.entries[1].status,'waitlisted');changeEntryStatus(state,{entryId:b.id,status:'accepted'},now);
+ assert.throws(()=>withdrawRun(state,{entryId:a.id,eventId:'e1',reason:'Retry'},now),/active entered run/);
+ const journal=activityJournal(state,config.id);assert.ok(journal.some(item=>item.label==='Payment recorded'&&item.amountCents===5000));assert.ok(journal.some(item=>item.label==='Run withdrawn'&&item.event.includes('Round 1')));assert.ok(workingReport(state,config.id,'journal').includes('Handler withdrew this run'));
+});
+test('withdrawal preserves judged runs and rejects failed changes without journal entries',()=>{
+ const {state,config}=fixture();const entry=submitEntry(state,input(config,'test-c',['e1','e2']),'online',now);changeEntryStatus(state,{entryId:entry.id,status:'accepted'},now);recordScore(state,{entryId:entry.id,eventId:'e1',judgeConfirmed:true,outcome:'Q',score:190,elapsedSeconds:65},now);
+ const before=JSON.stringify(state);assert.throws(()=>withdrawRun(state,{entryId:entry.id,eventId:'e1',reason:'Cannot erase judge result'},now),/judged run/);assert.equal(JSON.stringify(state),before);
+ withdrawRun(state,{entryId:entry.id,eventId:'e2',reason:'Withdraw remaining run'},now);assert.equal(state.scores.length,1);assert.equal(state.entries[0].status,'accepted');
+});
+test('journal resolves legacy finance references without leaking another trial or ambiguous event',()=>{
+ const {state,config}=fixture();const entry=submitEntry(state,input(config,'test-d'),'online',now);changeEntryStatus(state,{entryId:entry.id,status:'accepted'},now);postFinance(state,{entryId:entry.id,kind:'payment',amountCents:2500,note:'Legacy receipt'},now);
+ for(const row of state.audit){delete row.trialId;delete row.entryId;delete row.actor;}
+ state.trials.other={...structuredClone(config),id:'other'};state.audit.push({id:'ambiguous',action:'order.changed',reference:'e1',occurredAt:now,reason:'Ambiguous legacy event'});
+ assert.ok(activityJournal(state,config.id).some(item=>item.reason==='Legacy receipt'));assert.equal(activityJournal(state,'other').filter(item=>item.reason==='Legacy receipt').length,0);assert.equal(activityJournal(state,config.id).some(item=>item.id==='ambiguous'),false);
+});
 function fixture(capacity=3){const premium=sampleDraft(),trial=createTrialWorkspace(premium);const pricing=Object.fromEntries(premium.events.map(event=>[event.id,{fee:event.format==='Working'?2:event.format==='Team'?1:0,feoFee:3,basis:event.format==='Working'?'exercise':'dog'}]));const config=makeTrialConfig({trial,premium,editions:[],pricing,capacity});const state=emptyRecords();installTrial(state,config,now);return{state,config};}
 function input(config,id='001334',events=['e1']){return{trialId:config.id,idempotencyKey:'request-'+id,contact:{name:'Sample Handler',email:'sample@example.com',phone:'555-0100',address:'Fictional address'},dog:{name:'Sample Dog',caroId:id,breed:'Mixed',birthDate:'2020-01-01',height:'18 inches',jumpHeight:'12 inches'},partner:{handler:'Sample Partner',dog:{name:'Partner Dog',caroId:'002000',breed:'Mixed',birthDate:'2020-01-01',height:'20 inches',jumpHeight:'14 inches'}},selections:events.map(eventId=>({eventId,stream:'B',exercises:eventId==='e5'?[{id:'exercise-1',level:'Rookie'},{id:'exercise-2',level:'Elite'}]:[]})),agree:true,eligibilityDeclared:true};}
 test('real entry form requires finalized approved application and matching premium edition',()=>{const premium={...sampleDraft(),fictional:false};assert.throws(()=>makeTrialConfig({trial:createTrialWorkspace(premium),premium,editions:[],pricing:{}}),/approval/);});

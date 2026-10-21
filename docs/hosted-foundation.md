@@ -1,5 +1,7 @@
 # Hosted database and authentication foundation
 
+For the current October 20 local implementation and unapplied migration order, read deployment-queue.md. The historical status below describes earlier deployment stages; it is not a claim that new local features have been deployed.
+
 Updated October 19, 2026. The user reports applying the foundation SQL manually and supplied query output confirming RLS on all 12 tables. A live anonymous API smoke test confirms private-table access is denied and the public listing is readable with no published trials. The management connector still lacks CARO access. Historical preparation notes below describe earlier stages.
 
 ## First hosted staff screen
@@ -59,3 +61,5 @@ The Supabase skill security review moved the club bootstrap definer into caro_pr
 ## Organization mismatch identified in browser
 
 The authorized Supabase browser session confirms that CARO rootupwvjwfterxhfwqx belongs to Chrojoh4's Org (organization tcmucrrcwrprpquhpfit), and the project is currently named Chrojoh4's Project. The management connector is authorized only for Chrojoh's (organization czhmgxjrxdhcesvsljaw). These are distinct organizations. Reauthorize the connection for Chrojoh4's Org; do not point the CARO app at the older secretary organization. The browser showed no existing migrations at inspection; no SQL was executed.
+
+Authentication follow-up: user approved production URL configuration. Site URL changed from localhost to https://carosec.vercel.app; exact redirect https://carosec.vercel.app/ added through CARO dashboard. Staff account creation and signed-in club smoke test require the user to enter their own credentials.

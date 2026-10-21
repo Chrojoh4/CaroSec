@@ -1,5 +1,9 @@
 # Delivery roadmap
 
+## Required integrated secretary workflow
+
+The user confirmed application, premium builder, online and paper entry forms, waitlist, running order, judge score sheets, CARO summaries and an activity journal as mandatory. See [beta-readiness.md](beta-readiness.md) and [local-progress-2026-10-20.md](local-progress-2026-10-20.md) for current status; later sections retain the original plan and historical milestones. Per-run withdrawal, mixed waitlists, journal and dedicated judge working PDFs now exist locally. Their complete hosted workflow and official export verification remain outstanding.
+
 ## 1. Architecture foundation — delivered
 
 Research register, logical model, access design, domain vocabulary, finalization and scheduling invariants, application/repository separation, and local behavioral checks. Run `npm test` and `npm run demo` without cloud services.
@@ -17,6 +21,8 @@ Use the user-supplied official documents catalogued in download-review.md to res
 Acceptance: all six Rally levels visible; Working is separate; unsupported class combinations unavailable; draft event reordering renumbers application events; finalized events retain identities while schedules reorder. The interface clearly labels fictional local data and provisional rules.
 
 ## 3. Persistent accounts and club isolation
+
+Required addition: implement the system Administrator role and Administration sidebar described in administrator.md, with access to every club/trial, protected staff/role management and audit history. Verify cross-club administrator access and denied ordinary-user access before enabling it. The first administrator account requires explicit identification and authorization; no automatic promotion.
 
 When the user creates Supabase: add versioned migrations, Supabase Auth, repository adapter, RLS, private file storage and seed only reviewed reference data. User supplies configuration through secret settings. No C-WAGS database connection is needed.
 

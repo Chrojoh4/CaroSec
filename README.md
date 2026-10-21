@@ -1,5 +1,13 @@
 # CARO Trial Management
 
+October 20 local development: `npm run dev:practice` opens the isolated fictional RallyPaws workspace at http://localhost:4322/ with separate records. `npm run sample:trial` creates disposable test reports. See [local progress](docs/local-progress-2026-10-20.md) and [deployment queue](docs/deployment-queue.md) for the distinction between live features and prepared local changes.
+
+`npm run rehearse:trial` runs the complete fictional trial-day and reconciliation scenario; see [rehearsal instructions](docs/trial-rehearsal.md).
+
+See [beta readiness](docs/beta-readiness.md) for the remaining hosted acceptance gates and [backup recovery](docs/backup-recovery.md) for recovery to a separate local file. Current local database and domain suite: 114 passing tests. No live deployment is implied by the source build.
+
+Prepared hosted additions now include a trial overview, private practice mode, approved public premium/paper-form publication, filtered activity journal and server-only online-entry/receipt source. Online publication stays gated until live acceptance. See [public entry architecture](docs/hosted-public-entry.md).
+
 Hosted staff foundation: `npm ci` then `npm run build` produces staff sign-in, account registration, club setup and RLS-filtered trial lists for Vercel. The browser-safe configuration lives in `hosted/public-config.json`; no secret key is bundled. Set Supabase Auth Site URL to `https://carosec.vercel.app` and allow `https://carosec.vercel.app/` as a redirect. See `docs/hosted-foundation.md` for verified scope and remaining hosted work. The local secretary and PDF tools below continue separately.
 
 Independent secretary software for the Canadian Association of Rally Obedience, inspired by the workflows of the existing C-WAGS system. All new work lives in `E:\CARO`.
