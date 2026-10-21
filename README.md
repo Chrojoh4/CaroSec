@@ -4,7 +4,7 @@ October 20 local development: `npm run dev:practice` opens the isolated fictiona
 
 `npm run rehearse:trial` runs the complete fictional trial-day and reconciliation scenario; see [rehearsal instructions](docs/trial-rehearsal.md).
 
-See [beta readiness](docs/beta-readiness.md) for the remaining hosted acceptance gates and [backup recovery](docs/backup-recovery.md) for recovery to a separate local file. Current local database and domain suite: 114 passing tests. No live deployment is implied by the source build.
+See [beta readiness](docs/beta-readiness.md) for the remaining hosted acceptance gates and [backup recovery](docs/backup-recovery.md) for recovery to a separate local file. Current local database and domain suite: 120 passing tests. No live deployment is implied by the source build.
 
 Prepared hosted additions now include a trial overview, private practice mode, approved public premium/paper-form publication, filtered activity journal and server-only online-entry/receipt source. Online publication stays gated until live acceptance. See [public entry architecture](docs/hosted-public-entry.md).
 
@@ -91,3 +91,5 @@ Downloaded CARO reference documents, generated previews, local records and actua
 ## Hosted foundation preparation
 
 The user applied the foundation SQL and confirmed RLS on all 12 tables; see [hosted-foundation.md](docs/hosted-foundation.md) for access status and boundaries. The database policy tests use disposable embedded PostgreSQL. Run `npm ci` before `npm test` to install the pinned dependencies. This supersedes earlier no-install instructions for the dependency-free local version. The hosted staff screen is separate from the local application/secretary desk.
+
+Official application transfer helper: the trial editor exports reviewed details for CARO’s real online form. See hosted/caro-helper/README.md. First-page fields are mapped; automatic event/judge selection and complete browser verification remain pending.

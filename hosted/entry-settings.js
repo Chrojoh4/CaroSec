@@ -1,10 +1,11 @@
-export function mountEntrySettings({client,container,action,message}){
+export function mountEntrySettings({client,container,action,message,navigate}){
  let generation=0,dirty=false;
  const el=(tag,text)=>{const node=document.createElement(tag);if(text)node.textContent=text;return node;};
+ function go(section,label){if(!navigate)return;const button=el('button',label);button.type='button';button.className='secondary';button.addEventListener('click',()=>navigate(section));container.append(button);}
  function clear(){generation++;dirty=false;container.hidden=true;container.replaceChildren();}
  async function open(trial){
   clear();const ticket=generation;container.hidden=false;container.append(el('h2','Entry pricing and capacity'),el('p','Map every finalized round to a saved premium fee. This private setup does not publish a premium or open entry forms. Prices lock after the first hosted entry.'));
-  if(trial.application_state!=='finalized'){container.append(el('p','Finalize the application before mapping entry prices.'));return;}
+  if(trial.application_state!=='finalized'){container.append(el('p','Save and lock the trial details and round order before mapping entry prices. This does not submit anything to CARO.'));go('application','Review trial details and rounds');return;}
   const results=await Promise.all([
    client.from('caro_entry_settings').select('revision,premium_draft_revision,pricing,agreement_version').eq('trial_id',trial.id).maybeSingle(),
    client.from('caro_premium_drafts').select('revision,content').eq('trial_id',trial.id).maybeSingle(),
@@ -12,7 +13,7 @@ export function mountEntrySettings({client,container,action,message}){
   ]);
   if(ticket!==generation)return;const failed=results.find(result=>result.error);if(failed)throw new Error(failed.error.message);
   const [settings,draft,events]=results.map(result=>result.data);
-  if(!draft||!draft.content.fees?.length){container.append(el('p','Save premium fees, opening/closing dates and the host agreement first.'));return;}
+  if(!draft||!draft.content.fees?.length){container.append(el('p','Save premium fees, opening/closing dates and the host agreement first.'));go('premium','Complete premium dates, fees and agreement');return;}
   const stale=settings&&settings.premium_draft_revision!==draft.revision;
   if(stale)container.append(el('p','The premium has changed since this setup. Review and select every price again before saving.'));
   container.append(el('p','Entry dates from the premium: '+(draft.content.opens||'Not set')+' to '+(draft.content.closes||'Not set')),el('h3','Host agreement to review'),el('p',draft.content.waiver||'No agreement saved.'));

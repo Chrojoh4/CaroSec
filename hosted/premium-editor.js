@@ -3,7 +3,7 @@ import {hostedPremium,premiumTextFields} from '../src/domain/hosted-premium.js';
 import {renderPremium} from '../src/domain/premium.js';
 import premiumStyle from './premium.css';
 const labels={opens:'Entries open',closes:'Entries close',capacity:'Entry limit wording',intro:'Welcome introduction',timing:'Trial day schedule',dayOf:'Day-of entry policy',orderNote:'Running-order information',payment:'Payment instructions',confirmations:'Entry confirmations',facilities:'Venue facilities',accommodations:'Accessibility and accommodations',awards:'Awards',moveups:'Move-up policy',refunds:'Withdrawal and refund policy',siteRules:'Site rules',waiver:'Reviewed host agreement'};
-export function mountPremiumEditor({client,container,action,message}){
+export function mountPremiumEditor({client,container,action,message,navigate}){
  let revision=-1,trial=null,dirty=false,generation=0;
  const el=(tag,text)=>{const node=document.createElement(tag);if(text)node.textContent=text;return node;};
  function clear(){generation++;container.hidden=true;container.replaceChildren();trial=null;dirty=false;}
@@ -14,6 +14,13 @@ export function mountPremiumEditor({client,container,action,message}){
   if(ticket!==generation)return;
   if(error)throw new Error('Premium drafts need the premium database setup SQL and trial access.');
   trial=structuredClone(value);revision=data?.revision??-1;dirty=false;const content=data?.content||{};container.hidden=false;container.replaceChildren();container.append(el('h2','Premium builder'),el('p','Private draft. Trial identity, officials, dates and events come from the saved application. Saving or downloading does not publish entries or record CARO approval.'));
+  const source=hostedPremium(trial,content),details=el('article');details.append(el('h3','Information from your saved trial'));
+  for(const [label,value] of [['Host',source.host],['Dates',source.date+' to '+source.endDate],['Timezone',source.timezone],['Venue',source.venue],['Address',source.address],['Secretary',source.secretary],['Contact email',source.email],['Chairperson',source.chair]])details.append(el('p',label+': '+(value||'Not entered in trial details')));
+  details.append(el('h4','Scheduled rounds'));
+  for(const event of source.events)details.append(el('p','Round '+event.round+' · '+Object.entries(event).filter(([key,value])=>key!=='id'&&key!=='round'&&typeof value==='string'&&value).map(([,value])=>value).join(' · ')));
+  if(!source.events.length)details.append(el('p','No rounds saved. Add rounds in trial details before preparing entry pricing.'));
+  if(navigate){const edit=el('button','Edit trial details and rounds');edit.type='button';edit.className='secondary';edit.addEventListener('click',()=>navigate('application'));details.append(edit);}
+  container.append(details,el('h3','Premium wording and entry policies'),el('p','The information above is already included in the preview. Complete the entry dates, fees and host policies below; these require your decisions and are not inferred from competition rules.'));
   const form=el('form'),preview=el('div'),fees=el('div');fees.id='premium-fees';
   for(const key of premiumTextFields){const label=el('label',labels[key]||'Colour palette');let input;if(key==='theme'){input=el('select');for(const name of ['forest','ocean','berry']){const option=el('option',name);option.value=name;input.append(option);}}else input=el(['opens','closes'].includes(key)?'input':'textarea');input.name=key;if(['opens','closes'].includes(key))input.type='date';input.value=content[key]||(key==='theme'?'forest':'');input.maxLength=10000;label.append(input);form.append(label);}
   form.append(el('h3','Fees in Canadian dollars'),el('p','State the unit explicitly: per dog, per event entry/group, or per selected Working exercise.'),fees);

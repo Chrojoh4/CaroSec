@@ -21,3 +21,5 @@
 .report-actions{display:flex;flex-wrap:wrap;gap:.7rem}.report-actions button{flex:1 1 220px;text-align:left}#reports-panel>a{display:inline-block;min-height:48px;padding:.8rem 0}
 
 .preserve-lines{white-space:pre-wrap;overflow-wrap:anywhere}
+
+#sidebar button[aria-current=page]{background:#175b47;color:white;border-color:#175b47}#club-setup{margin:1.5rem 0;padding:1rem;border:1px solid #b8c9be;border-radius:10px}#club-setup summary{cursor:pointer;font-weight:700;min-height:48px}#premium-panel textarea{font:inherit;min-height:110px;width:100%;padding:.7rem;border:1px solid #687f74;border-radius:8px}

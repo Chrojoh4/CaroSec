@@ -1,12 +1,12 @@
 import {mountEntryForm} from '../web/entry-form.js';
-export function mountManualIntake({client,container,action,message}){
+export function mountManualIntake({client,container,action,message,navigate}){
  let generation=0,dirty=false,pending=false;
  const el=(tag,text)=>{const node=document.createElement(tag);if(text)node.textContent=text;return node;};
  function clear(){generation++;dirty=false;pending=false;container.hidden=true;container.replaceChildren();}
  async function open(trial){
   clear();const ticket=generation;container.hidden=false;container.append(el('h2','Record a paper or email entry'),el('p','Enter the signed form received by the secretary. Submission records the entrant declaration for review; acceptance, fees charged and payment records are separate decisions.'));
   const {data:config,error}=await client.rpc('caro_manual_entry_configuration',{p_trial:trial.id});if(ticket!==generation)return;
-  if(error){container.append(el('p',error.message));return;}
+  if(error){container.append(el('p',error.message),el('p','Entry intake needs locked rounds, premium dates and fees, mapped prices and capacities, and CARO approval for a real trial. Practice trials remain private.'));if(navigate)for(const [section,label] of [['application','Trial details and rounds'],['premium','Premium builder'],['entry-settings','Entry pricing and capacity'],['sanction','CARO approval record']]){const button=el('button',label);button.type='button';button.className='secondary';button.addEventListener('click',()=>navigate(section));container.append(button);}return;}
   container.append(el('p','Agreement and pricing are frozen with the first received hosted entry. Later private premium edits do not change those entry terms. Record the original receipt time when known; leave it blank if unknown.'));
   const root=el('div');root.className='hosted-intake';container.append(root);
   mountEntryForm(root,config,{manual:true,lookupResults:async dogId=>{

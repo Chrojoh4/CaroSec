@@ -100,3 +100,8 @@ This is entry assistance, not a requirement to build a career tracker. The stand
 - Available, no-results, timeout and unsupported responses are distinguishable, and none prevents manual entry submission solely because history is unavailable.
 - Anonymous ID entry cannot expose private local dog/handler records or claim ownership of an existing record.
 - No history-dependent eligibility or title conclusion is made from an unverified/incomplete response.
+
+
+## Official application helper - current implementation
+
+The hosted trial editor now exports a strictly projected application-transfer JSON and links the official web application and Chrome/Edge helper ZIP. See `hosted/caro-helper/README.md` for installation and verified limits. The helper fills recognized visible host/contact controls; matching date/location bindings are conditional on the controls actually being present. It preserves existing values by default, skips unknown options, excludes secret/member-evidence/entrant records, and blocks practice-trial packets. Ordered event descriptions remain available for reviewed entry using CARO's own selectors. Automatic member lookup, judge IDs, event-row creation and submission are not implemented. The live five-step workflow remains pending browser verification.

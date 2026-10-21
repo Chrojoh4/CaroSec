@@ -1,3 +1,5 @@
+import {applicationHelperArchive} from './scripts/application-helper-archive.js';
+import {writeFile} from 'node:fs/promises';
 import {mkdir,readdir,copyFile,readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {build} from 'esbuild';
@@ -5,7 +7,7 @@ import {publicAuthConfig} from './src/cloud/auth.js';
 const root=import.meta.dirname;
 const output=resolve(root,'public');
 await mkdir(output,{recursive:true});
-const unexpected=(await readdir(output)).filter(name=>!['index.html','staff.js','staff.css','premium.css','public-trial.html','public-trial.js','public-trial.css'].includes(name));
+const unexpected=(await readdir(output)).filter(name=>!['index.html','staff.js','staff.css','premium.css','public-trial.html','public-trial.js','public-trial.css','caro-application-helper.zip'].includes(name));
 if(unexpected.length)throw new Error('Public build contains unexpected files; refusing to publish.');
 // This checked-in configuration contains only the browser-safe publishable key.
 // Explicit environment configuration, if supplied, must also pass validation.
@@ -19,3 +21,5 @@ console.log('Built staff login and club workspace. Only the public Supabase URL/
 
 await build({entryPoints:[resolve(root,'hosted/public-trial.js')],outfile:resolve(output,'public-trial.js'),bundle:true,minify:true,platform:'browser',format:'esm',target:'es2022',define:{__CARO_PUBLIC_CONFIG__:JSON.stringify(config)}});
 for(const file of ['public-trial.html','public-trial.css'])await copyFile(resolve(root,'hosted',file),resolve(output,file));
+
+await writeFile(resolve(output,'caro-application-helper.zip'),await applicationHelperArchive());

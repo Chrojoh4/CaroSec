@@ -1,3 +1,4 @@
+import {officialApplicationPacket} from '../src/domain/official-application.js';
 import {validCalendarDate} from '../src/domain/date-time.js';
 import {escapeHtml as escape} from '../src/domain/premium.js';
 const reviews=[['professionalConfirmed','I reviewed the host professional membership.'],['judgesConfirmed','I reviewed judge authorization and good standing.'],['classesConfirmed','I reviewed the offered classes, streams and formats.'],['nearbyConfirmed','I reviewed nearby-trial conflicts and required permissions.']];
@@ -19,28 +20,35 @@ export function mountTrialEditor({client,container,message,action,onSaved}){
   form.querySelector('#event-list').append(block);
  }
  function close(){if(dirty&&!confirm('Leave this draft without saving your latest changes?'))return;generation++;container.hidden=true;container.replaceChildren();row=null;dirty=false;}
- function open(value){if(dirty&&!confirm('Leave this draft without saving your latest changes?'))return;const ticket=++generation;row=structuredClone(value);dirty=false;container.hidden=false;container.replaceChildren();container.append(el('h2',row.revision===-1?'Create a trial':'Trial application draft'),el('p','Save your work at any stage. This prepares a draft; it does not submit an application to CARO or open entries.'));
+ function open(value){if(dirty&&!confirm('Leave this draft without saving your latest changes?'))return;const ticket=++generation;row=structuredClone(value);dirty=false;container.hidden=false;container.replaceChildren();container.append(el('h2',row.revision===-1?'Create a trial':'Trial details and rounds'),el('p','Save your work at any stage. This prepares a draft; it does not submit an application to CARO or open entries.'));
   const form=el('form');form.className='trial-form';const practiceLabel=el('label','Practice only — cannot be published or changed to a real trial'),practice=el('input');practice.type='checkbox';practice.name='is_practice';practice.checked=row.is_practice===true;practice.disabled=row.is_practice===true;practiceLabel.prepend(practice);form.append(practiceLabel);input(form,'title','Trial name',row.title);input(form,'start_date','First day',row.start_date,'date');input(form,'end_date','Last day',row.end_date,'date');input(form,'timezone','Trial timezone (IANA)',row.timezone);for(const [key,label] of fields)input(form,key,label,row.planning?.[key]||'');
   const events=el('div');events.id='event-list';form.append(el('h3','Events and judges'),el('p','Draft event order becomes the official round order when finalized. Move events before finalizing.'),events);const add=el('button','Add event');add.type='button';add.className='secondary';add.addEventListener('click',()=>{if(row.application_state!=='draft')return;if(events.children.length>=150){message('This release supports up to 150 events.',true);return;}eventBlock(form);dirty=true;});form.append(add);
   form.append(el('h3','Application review'));
   for(const [key,text] of reviews){const label=el('label'),checkbox=el('input');checkbox.type='checkbox';checkbox.name=key;checkbox.checked=row.planning?.[key]===true;label.append(checkbox,document.createTextNode(' '+text));form.append(label);}
   const controls=el('div');controls.className='actions';const save=el('button','Save trial draft');save.type='submit';const cancel=el('button','Back to workspace');cancel.type='button';cancel.className='secondary';cancel.addEventListener('click',close);
-  const finalize=el('button','Finalize application');finalize.type='button';finalize.className='secondary';finalize.addEventListener('click',()=>action(async()=>{
+  const finalize=el('button','Lock trial details and rounds');finalize.type='button';finalize.className='secondary';finalize.addEventListener('click',()=>action(async()=>{
    if(row.application_state!=='draft')throw new Error('Application is already finalized.');
    if(dirty||row.revision<0)throw new Error('Save your draft changes before finalizing.');
    if(!confirm('Finalize this application and lock its official event order, dates and judges? This does not submit it to CARO or record CARO approval.'))return;
    const {data,error}=await client.rpc('caro_finalize_trial_draft',{p_id:row.id,p_club:row.club_id,p_revision:row.revision});if(error)throw new Error(error.code==='PGRST202'?'Application finalization needs the new database setup SQL.':error.message);
    if(ticket!==generation)return;
-   const value={...row,revision:data.revision,application_state:'finalized'};await onSaved(value);open(value);message('Application finalized. CARO submission and approval are separate steps.');
+   const value={...row,revision:data.revision,application_state:'finalized'};await onSaved(value);open(value);message('Trial details and round order locked. Submit the official application to CARO separately.');
   }));
-  const summary=el('button','Download application summary');summary.type='button';summary.className='secondary';summary.addEventListener('click',()=>{
+  const summary=el('button','Download preparation summary');summary.type='button';summary.className='secondary';summary.addEventListener('click',()=>{
    const value=snapshot(form),body=`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>CARO application preparation summary</title><style>body{font:12pt/1.5 Arial;margin:24mm;color:#183c30}h2{break-after:avoid}article{break-inside:avoid;margin:1em 0}p{orphans:3;widows:3}@page{size:letter;margin:18mm}</style></head><body><h1>${escape(value.title)}</h1><p>Preparation summary · ${escape(row.application_state)} · CARO approval is not implied.</p><p>${escape(value.start_date)} to ${escape(value.end_date)} · ${escape(value.timezone)}</p><h2>Host officials and venue</h2>${fields.map(([key,label])=>`<p><strong>${escape(label)}</strong>: ${escape(value.planning[key])}</p>`).join('')}<h2>Events in official draft order</h2>${value.planning.events.map((event,i)=>`<article><h3>Round ${i+1} · ${escape(event.dayId)}</h3><p>${escape(event.level)} ${escape(event.format)} · ${escape(event.stream)}</p><p>Judge: ${escape(event.judge)}<br>${escape(event.exercises)}</p></article>`).join('')}<h2>Staff review</h2>${reviews.map(([key,label])=>`<p>${value.planning[key]?'Confirmed':'Not confirmed'}: ${escape(label)}</p>`).join('')}</body></html>`;
    const url=URL.createObjectURL(new Blob([body],{type:'text/html'})),link=el('a');link.href=url;link.download='CARO-application-summary.html';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
-  controls.append(save,finalize,summary,cancel);form.append(controls);container.append(form);
+  const transfer=el('button','Download details for official CARO application');transfer.type='button';transfer.className='secondary';transfer.addEventListener('click',()=>action(async()=>{
+   if(dirty||row.revision<0)throw new Error('Save the application before exporting its details.');
+   const packet=officialApplicationPacket(row),url=URL.createObjectURL(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'})),link=el('a');link.href=url;link.download='CARO-official-application-transfer.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);message(packet.trial.practice?'Practice transfer reference downloaded. Filling the official site is blocked for practice trials.':'Transfer file downloaded. Open CARO’s official application and import it into the browser helper.');
+  }));
+  const official=el('a','Open official CARO application');official.href='https://app.canadianrallyo.ca/trialapplication';official.target='_blank';official.rel='noopener';
+  const helper=el('a','Download browser transfer helper (Chrome / Edge)');helper.href='/caro-application-helper.zip';helper.download='caro-application-helper.zip';
+  const transferNote=el('p','The helper fills matching visible contact and venue fields on CARO. Member lookup, judge selections, event rows and final submission remain on CARO’s site. Later-page mappings still need browser verification.');
+  controls.append(save,finalize,summary,transfer,official,helper,cancel);container.append(transferNote);form.append(controls);container.append(form);
   for(const event of row.planning?.events||[])eventBlock(form,event);
   form.addEventListener('input',()=>{dirty=true;});form.addEventListener('change',()=>{dirty=true;});
-  if(row.application_state!=='draft'){for(const control of form.elements)control.disabled=true;cancel.disabled=false;summary.disabled=false;message('This trial is finalized and cannot be edited here.');}
+  if(row.application_state!=='draft'){for(const control of form.elements)control.disabled=true;cancel.disabled=false;summary.disabled=false;transfer.disabled=false;message('This trial is finalized and cannot be edited here.');}
   form.addEventListener('submit',event=>{event.preventDefault();action(async()=>{
    if(row.application_state!=='draft')throw new Error('Finalized trials cannot be edited here.');
    const draft=snapshot(form);if(!draft.title||draft.title.length>200)throw new Error('Enter a trial name of 1 to 200 characters.');if(!validCalendarDate(draft.start_date)||!validCalendarDate(draft.end_date)||draft.end_date<draft.start_date||(Date.parse(draft.end_date)-Date.parse(draft.start_date))/86400000>30)throw new Error('Choose valid consecutive trial dates, up to 31 days.');

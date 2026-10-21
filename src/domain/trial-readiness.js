@@ -4,7 +4,7 @@ import {runStatus} from './run-status.js';
 export function trialReadiness(trial,state,{premium=null,settings=null,listing=null}={}){
  const summary=trialSummary(state,trial.id),tasks=[],entries=state.entries.filter(e=>e.trialId===trial.id);
  const add=(section,label,done)=>tasks.push({section,label,done});
- add('application','Review and finalize the trial application',trial.application_state==='finalized');
+ add('application','Review and lock trial details and rounds',trial.application_state==='finalized');
  if(!trial.is_practice)add('sanction','Record the actual CARO approval',trial.sanction_status==='approved');
  add('premium','Save premium wording and fees',premium!==null);
  add('entry-settings','Review event pricing and capacity',!!settings&&(entries.length>0||settings.premium_draft_revision===premium?.revision));

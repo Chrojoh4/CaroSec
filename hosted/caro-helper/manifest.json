@@ -1,0 +1,8 @@
+{
+ "manifest_version":3,
+ "name":"CARO Secretary - Application Transfer",
+ "version":"0.1.0",
+ "description":"Fill visible CARO application contact and venue fields from a reviewed secretary export. Never submits an application.",
+ "permissions":["activeTab","scripting","storage"],
+ "action":{"default_popup":"popup.html","default_title":"Transfer saved CARO application details"}
+}
