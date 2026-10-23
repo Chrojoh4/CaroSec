@@ -60,3 +60,8 @@ test('private premium testing links are explicit and excluded from distributed e
  const draft=sampleDraft();const preview=renderPremium(draft,{secretaryPreview:true});assert.ok(preview.includes('#secretary-online-entry-preview'));assert.ok(preview.includes('#secretary-paper-entry-preview'));assert.ok(preview.includes('PRIVATE PROOF'));
  assert.equal(renderPremium(draft,{standalone:true}).includes('#secretary-paper-entry-preview'),false);
 });
+
+test('downloaded private premium retains usable authenticated proof links',()=>{
+ const html=renderPremium(sampleDraft(),{standalone:true,secretaryLinks:{online:'https://carosec.vercel.app/?trial=example&view=entry-preview',paper:'https://carosec.vercel.app/?trial=example&view=entry-paper-proof'}});
+ assert.ok(html.includes('view=entry-preview'));assert.ok(html.includes('view=entry-paper-proof'));assert.ok(html.includes('Secretary testing links'));assert.equal(html.includes('href="#secretary-'),false);
+});
