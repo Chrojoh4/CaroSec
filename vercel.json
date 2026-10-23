@@ -46,6 +46,10 @@
     "api/entry-receipt.js": {
       "maxDuration": 30,
       "excludeFiles": "{node_modules/**,.venv/**,requirements-dev.txt,tests/**,fixtures/**,docs/**,data/**,output/**,tmp/**,.env*,.git/**,.codex/**,.agents/**,web/**,public/**,supabase/**}"
+    },
+    "api/entry-proof.py": {
+      "maxDuration": 30,
+      "excludeFiles": "{node_modules/**,.venv/**,requirements-dev.txt,tests/**,fixtures/**,docs/**,data/**,output/**,tmp/**,.env*,.git/**,.codex/**,.agents/**,web/**,public/**,supabase/**}"
     }
   }
 }

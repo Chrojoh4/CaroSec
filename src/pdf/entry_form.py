@@ -22,7 +22,7 @@ def page():
  global y
  if y:footer();c.showPage()
  c.setFillColor(GREEN);c.rect(0,680,612,112,fill=1,stroke=0);c.setFillColor(white)
- c.setFont('Helvetica-Bold',12);c.drawString(52,766,'CARO TRIAL ENTRY FORM'+(' - FICTIONAL SAMPLE' if trial.get('fictional') else ''))
+ c.setFont('Helvetica-Bold',12);c.drawString(52,766,'CARO TRIAL ENTRY FORM'+(' - PRIVATE PROOF' if trial.get('privateProof') else ' - FICTIONAL SAMPLE' if trial.get('fictional') else ''))
  title=Paragraph(escape(clean(trial['title'])),ParagraphStyle('title',fontName='Times-Roman',fontSize=24,leading=26,textColor=white))
  _,h=title.wrap(508,60);title.drawOn(c,52,746-h)
  c.setFont('Helvetica',12);c.drawString(52,696,clean(trial['date'])+(' to '+clean(trial['endDate']) if trial.get('endDate') and trial['endDate']!=trial['date'] else '')+' | '+clean(trial.get('trialNumber') or 'Approval pending / sample'))
@@ -76,7 +76,9 @@ def dog(prefix,title):
  row([(prefix+'_height','Height at withers (include unit)',52,240),(prefix+'_jump','Jump height',320,240)])
  check(prefix+'_veteran','Veteran')
 
-page();section('1. Handler & contact',150)
+page();
+if trial.get('privateProof'):note('PRIVATE SECRETARY PROOF - NOT OPEN FOR ENTRIES. Fill fields only to test saving the PDF. Do not email this draft as an entry. Prices, streams and agreement may be incomplete.')
+section('1. Handler & contact',150)
 row([('handler_name','Handler name',52,240),('handler_email','Email address',320,240)])
 row([('handler_phone','Phone number',52,240),('handler_address','Mailing address',320,240)])
 dog('dog1','2. Your dog')
@@ -90,7 +92,7 @@ note('Tick each event you wish to enter. Select an offered stream or Working exe
 for event in trial['events']:
  # Keep the full event block on one page, including all offered exercises.
  count=len(event['exercises']) if event['format']=='Working' else 1
- fee=f"Competitive ${event['fee']['cents']/100:.2f} per {event['basis']}"
+ fee='PRICE NOT CONFIGURED - secretary review required' if event.get('previewMissingFee') else f"Competitive ${event['fee']['cents']/100:.2f} per {event['basis']}"
  if event.get('feoFee'):fee+=f"; FEO ${event['feoFee']['cents']/100:.2f} per {event['basis']}"
  details=fee+'. Judge: '+event['judge']
  _,detailh=para(details).wrap(508,1000)
@@ -115,7 +117,7 @@ note('Calculate the total using the per-dog / per-exercise units stated above.')
 row([('total_cad','Total entry fees (CAD)',52,240),('payment_reference','Payment method / reference',320,240)])
 note('Agreement / premium reference: '+str(trial.get('premiumVersion') or 'Contact secretary'))
 note(trial.get('payment',''))
-note('Return the completed form to '+trial['email']+'. Save a completed copy first. Submission is pending secretary review; it does not confirm acceptance or payment. '+trial.get('confirmations',''))
+note(('PRIVATE PROOF ONLY - do not return this draft as an entry. Future return address: ' if trial.get('privateProof') else 'Return the completed form to ')+trial['email']+'. Save a completed copy first. Submission is pending secretary review; it does not confirm acceptance or payment. '+trial.get('confirmations',''))
 section(('6' if has_partner else '5')+'. Requests & entry agreement',130)
 row([('accommodation','Accommodation request (arrange supporting documents with secretary)',52,508,None,65)])
 note(trial.get('accommodations',''))
@@ -130,6 +132,6 @@ ensure(225)
 check('eligibility_declaration','I declare that the selected classes/levels are appropriate for this entry.')
 check('agreement_read','I have read the premium and host agreement.')
 row([('signature','Signature / name (follow host instructions)',52,300),('signature_date','Date (YYYY-MM-DD)',385,175)])
-note('This form does not send itself. Email it to '+trial['email']+' using your own email application. Contact the secretary if a handwritten signature or another submission method is required.')
+note(('PRIVATE PROOF - this form does not send or register an entry. Future email address: ' if trial.get('privateProof') else 'This form does not send itself. Email it to ')+trial['email']+' using your own email application. Contact the secretary if a handwritten signature or another submission method is required.')
 footer();c.save();os.replace(temporary,target)
 print(json.dumps({'fields':len(fields),'path':str(target)}))

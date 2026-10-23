@@ -75,3 +75,6 @@ The prepared application-transfer helper adds caro-application-helper.zip to the
 ## October 23 judge replacement update
 
 Prepared additional migration: `20261023213043_judge_replacements.sql`. Apply only after the earlier schema is verified, then deploy the matching frontend and judge PDF code. The new result endpoint checks assignment version; old scoring clients cannot write an amended round. The connected account currently lists C-WAGS and SDDA, not CARO project rootupwvjwfterxhfwqx; no remote schema changes were performed. See judge-replacements.md. Exercise a published test premium, original-course credit, replacement-course credit, private notification CSV, stale score editor, and scored/completed rejection in browser acceptance.
+
+
+Private premium testing links now open the read-only online form and POST to the authenticated entry-proof PDF endpoint. The PDF uses RLS-authorized saved trial/premium information, is interactive and labelled PRIVATE PROOF, and cannot publish or receive an entry. No new migration or server secret is needed. Draft per-event prices remain explicitly unconfigured until reviewed. Verify the deployed download under owner, assigned secretary and denied foreign accounts before beta.

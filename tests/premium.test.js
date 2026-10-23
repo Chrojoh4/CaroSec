@@ -55,3 +55,8 @@ test('preview and edition use the same explicit CAD prices, units and official r
   assert.ok(html.includes('round-pill">5'));
   assert.ok(!html.includes('PRIVATE DRAFT'));
 });
+
+test('private premium testing links are explicit and excluded from distributed exports',()=>{
+ const draft=sampleDraft();const preview=renderPremium(draft,{secretaryPreview:true});assert.ok(preview.includes('#secretary-online-entry-preview'));assert.ok(preview.includes('#secretary-paper-entry-preview'));assert.ok(preview.includes('PRIVATE PROOF'));
+ assert.equal(renderPremium(draft,{standalone:true}).includes('#secretary-paper-entry-preview'),false);
+});
