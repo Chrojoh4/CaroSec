@@ -151,3 +151,17 @@ input[type=checkbox]{min-height:0;width:20px;height:20px;flex-shrink:0}
  .premium-section h2+p{break-after:avoid-page}
  .premium-section--flowing tbody{break-inside:auto;page-break-inside:auto}
 }
+
+/* Premium-specific rhythm: do not inherit workspace section cards and margins. */
+.premium .premium-section{margin:0;padding:1rem 1.2rem;border:0;border-bottom:1px solid #d5dfd7;border-radius:0;box-shadow:none;background:transparent}
+.premium .premium-ribbon{padding:.55rem 1.2rem}.premium .premium-hero{padding:1rem 1.2rem}
+.premium .premium-hero h1{margin:.2em 0}.premium .premium-intro{margin:.5rem 0}
+.premium .welcome-strip,.premium .premium-footer{padding:.8rem 1.2rem}
+.premium .entry-banner,.premium .fee-grid{padding:.6rem 1.2rem;gap:.65rem}
+.premium .entry-banner>div,.premium .fee-tile{padding:.65rem .8rem}
+.premium .fee-grid{padding:.3rem 0}.premium .two-column{gap:1rem}
+.premium .premium-section h2{margin:0 0 .65rem}.premium h3{margin:.65rem 0 .35rem}
+.premium p{margin:.4rem 0 .65rem}.premium .fineprint{padding:0 1.2rem}.premium .premium-section .fineprint{padding:0}
+.premium .agreement{margin-top:.75rem;padding:.6rem .8rem}.premium th,.premium td{padding:.45rem .6rem}
+.premium .policy-note{padding:.6rem .8rem;margin:.6rem 0}.premium .premium-section:empty{display:none}
+@media print{.premium .premium-section{padding:.65rem 0}.premium .premium-hero{padding:.8rem 1rem}.premium .welcome-strip,.premium .premium-footer{padding:.6rem .8rem}.premium .entry-banner{padding:.4rem 0}.premium .entry-banner>div,.premium .fee-tile{padding:.45rem .6rem}.premium .premium-section{break-inside:auto;page-break-inside:auto}.premium h2,.premium h3{break-after:avoid}.premium p{orphans:3;widows:3}}

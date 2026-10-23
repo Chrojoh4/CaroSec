@@ -16,11 +16,11 @@ data=json.load(sys.stdin)
 target=Path(sys.argv[1]);target.parent.mkdir(parents=True,exist_ok=True)
 green=colors.HexColor('#164b3c');ink=colors.HexColor('#183c31');gold=colors.HexColor('#a5792b')
 styles={
- 'body':ParagraphStyle('Body',fontName='Helvetica',fontSize=12,leading=17,textColor=ink,spaceAfter=9,allowWidows=0,allowOrphans=0),
- 'title':ParagraphStyle('Title',fontName='Helvetica-Bold',fontSize=27,leading=33,textColor=green,spaceAfter=16,keepWithNext=True),
- 'heading':ParagraphStyle('Heading',fontName='Helvetica-Bold',fontSize=16,leading=21,textColor=green,spaceBefore=17,spaceAfter=9,keepWithNext=True),
- 'sub':ParagraphStyle('Subheading',fontName='Helvetica-Bold',fontSize=12,leading=17,textColor=green,spaceBefore=8,spaceAfter=5,keepWithNext=True),
- 'notice':ParagraphStyle('Notice',fontName='Helvetica-Bold',fontSize=12,leading=17,textColor=green,backColor=colors.HexColor('#edf2e7'),borderPadding=10,spaceBefore=8,spaceAfter=17),
+ 'body':ParagraphStyle('Body',fontName='Helvetica',fontSize=12,leading=16,textColor=ink,spaceAfter=6,allowWidows=0,allowOrphans=0),
+ 'title':ParagraphStyle('Title',fontName='Helvetica-Bold',fontSize=27,leading=33,textColor=green,spaceAfter=10,keepWithNext=True),
+ 'heading':ParagraphStyle('Heading',fontName='Helvetica-Bold',fontSize=16,leading=21,textColor=green,spaceBefore=11,spaceAfter=6,keepWithNext=True),
+ 'sub':ParagraphStyle('Subheading',fontName='Helvetica-Bold',fontSize=12,leading=17,textColor=green,spaceBefore=5,spaceAfter=4,keepWithNext=True),
+ 'notice':ParagraphStyle('Notice',fontName='Helvetica-Bold',fontSize=12,leading=17,textColor=green,backColor=colors.HexColor('#edf2e7'),borderPadding=8,spaceBefore=6,spaceAfter=10),
 }
 def p(value,style='body'):return Paragraph(escape(str(value or '')).replace('\n','<br/>'),styles[style])
 story=[]
@@ -40,7 +40,7 @@ def link(label,value):
  else:story.append(p(label+': not open / not configured in this preview.'))
 def table(rows,widths):
  t=Table(rows,colWidths=widths,repeatRows=1,hAlign='LEFT',splitByRow=1,splitInRow=1)
- t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#edf2e7')),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),10),('TOPPADDING',(0,0),(-1,-1),9),('BOTTOMPADDING',(0,0),(-1,-1),9),('LINEBELOW',(0,0),(-1,-1),.5,colors.HexColor('#bfcec4'))]))
+ t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#edf2e7')),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),10),('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),('LINEBELOW',(0,0),(-1,-1),.5,colors.HexColor('#bfcec4'))]))
  return t
 
 story.extend([p('CARO · TRIAL PREMIUM','sub'),p(data.get('title'),'title')])
@@ -63,7 +63,7 @@ story.append(p('Trial chair: '+str(data.get('chair',''))))
 link('Online entry form',data.get('entryUrl'))
 link('Download email / paper entry form',data.get('entryPdfUrl'))
 section('Email and paper entry instructions',data.get('paperEntryInstructions') or ('Return the completed entry form to '+data.get('email','the trial secretary')+'. Confirm the stated closing date and payment instructions.'))
-story.extend([CondPageBreak(170),p('Offered events and judges','heading')])
+story.extend([CondPageBreak(95),p('Offered events and judges','heading')])
 for event in data.get('events',[]):
  label=event.get('format') if event.get('format')=='Working' else str(event.get('level',''))+' '+str(event.get('format',''))
  story.append(p('Round '+str(event.get('round',''))+' · '+str(event.get('dayId') or data.get('date',''))+' · '+str(label),'sub'))
@@ -78,5 +78,5 @@ story.append(Spacer(1,12));story.append(p('Questions? Contact '+str(data.get('se
 def footer(canvas,doc):
  canvas.saveState();canvas.setStrokeColor(gold);canvas.line(50,44,562,44);canvas.setFont('Helvetica',10);canvas.setFillColor(ink);canvas.drawString(50,28,'CARO Trial Secretary · '+('Fictional practice premium' if data.get('fictional') else 'Secretary preview'));canvas.drawRightString(562,28,'Page '+str(doc.page));canvas.restoreState()
 temp=target.with_suffix('.pdf.next')
-SimpleDocTemplate(str(temp),pagesize=(612,792),leftMargin=50,rightMargin=50,topMargin=42,bottomMargin=62,title=str(data.get('title','Trial premium')),author='CARO Trial Secretary').build(story,onFirstPage=footer,onLaterPages=footer)
+SimpleDocTemplate(str(temp),pagesize=(612,792),leftMargin=50,rightMargin=50,topMargin=36,bottomMargin=58,title=str(data.get('title','Trial premium')),author='CARO Trial Secretary').build(story,onFirstPage=footer,onLaterPages=footer)
 os.replace(temp,target)
