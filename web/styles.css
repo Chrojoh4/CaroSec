@@ -165,3 +165,5 @@ input[type=checkbox]{min-height:0;width:20px;height:20px;flex-shrink:0}
 .premium .agreement{margin-top:.75rem;padding:.6rem .8rem}.premium th,.premium td{padding:.45rem .6rem}
 .premium .policy-note{padding:.6rem .8rem;margin:.6rem 0}.premium .premium-section:empty{display:none}
 @media print{.premium .premium-section{padding:.65rem 0}.premium .premium-hero{padding:.8rem 1rem}.premium .welcome-strip,.premium .premium-footer{padding:.6rem .8rem}.premium .entry-banner{padding:.4rem 0}.premium .entry-banner>div,.premium .fee-tile{padding:.45rem .6rem}.premium .premium-section{break-inside:auto;page-break-inside:auto}.premium h2,.premium h3{break-after:avoid}.premium p{orphans:3;widows:3}}
+
+.entry-intake .event-choice{padding:.75rem;margin:.6rem 0}.entry-intake .event-choice-heading{padding:.25rem 0;gap:.7rem}.entry-intake .event-choice-details{padding:.35rem 0}.entry-intake .event-choice-details p{margin:.4rem 0}.entry-intake .offered-options strong{display:inline}

@@ -48,19 +48,19 @@ def note(value):
   remaining=parts[1] if len(parts)>1 else None
   if remaining:page();section('Continued',40)
 
-def row(specs):
+def row(specs,gap=24):
  global y
  # Each spec: name,label,x,width, optional offered choices or multiline height.
  labels=[para(spec[1]) for spec in specs]
  heights=[label.wrap(spec[3],1000)[1] for label,spec in zip(labels,specs)]
- labelh=max(heights);boxh=max([spec[5] if len(spec)>5 else 30 for spec in specs]);ensure(labelh+boxh+24)
+ labelh=max(heights);boxh=max([spec[5] if len(spec)>5 else 30 for spec in specs]);ensure(labelh+boxh+gap)
  for label,h,spec in zip(labels,heights,specs):
   name,description,x,width=spec[:4];label.drawOn(c,x,y-h);bottom=y-labelh-8-boxh
   common=dict(name=name,tooltip=clean(description),x=x,y=bottom,width=width,height=boxh,fontName='Helvetica',fontSize=12,borderColor=LINE,fillColor=PALE,textColor=INK,forceBorder=True)
   if len(spec)>4 and spec[4]:c.acroForm.choice(**common,options=['Select...']+spec[4],value='Select...')
   else:c.acroForm.textfield(**common,borderWidth=.8,fieldFlags='multiline' if boxh>30 else '',maxlen=2000 if boxh>30 else 250)
   fields.append(name)
- y-=labelh+boxh+24
+ y-=labelh+boxh+gap
 
 def check(name,label):
  global y
@@ -88,21 +88,22 @@ if has_partner:
  row([('partner_handler','Partner handler (Brace: same handler as above)',52,508)])
  note('Team has two handlers and two dogs; Brace has one handler and two dogs. For a bye dog, contact the secretary rather than entering CARO ID 2799 as an owned dog.')
 section(('4' if has_partner else '3')+'. Choose your events',190)
+if trial.get('savedFeeSummary'):note('Saved premium fees (round assignment still pending): '+trial['savedFeeSummary'])
 note('Tick each event you wish to enter. Select an offered stream or Working exercise level. FEO applies to the entire round. Complete both dogs for Team / Brace. Fees are in CAD; check per-dog or per-exercise units.')
 for event in trial['events']:
  # Keep the full event block on one page, including all offered exercises.
  count=len(event['exercises']) if event['format']=='Working' else 1
- fee='PRICE NOT CONFIGURED - secretary review required' if event.get('previewMissingFee') else f"Competitive ${event['fee']['cents']/100:.2f} per {event['basis']}"
+ fee='Fee assignment pending - see saved premium fees' if event.get('previewMissingFee') else f"Competitive ${event['fee']['cents']/100:.2f} per {event['basis']}"
  if event.get('feoFee'):fee+=f"; FEO ${event['feoFee']['cents']/100:.2f} per {event['basis']}"
  details=fee+'. Judge: '+event['judge']
  _,detailh=para(details).wrap(508,1000)
- row_heights=[para(exercise['name']+' - choose level, or leave Select...').wrap(508,1000)[1]+54 for exercise in event['exercises']] if event['format']=='Working' else [71]
- block=49+31+(31 if event.get('feoFee') else 0)+detailh+14+sum(row_heights)+12
+ row_heights=[para(exercise['name']+' - choose level, or leave Select...').wrap(508,1000)[1]+54 for exercise in event['exercises']] if event['format']=='Working' else [59]
+ block=38+(31 if event.get('feoFee') else 0)+detailh+14+sum(row_heights)+12
  ensure(block if block<=593 else 250)
- c.setFillColor(PALE);c.roundRect(52,y-33,508,34,3,fill=1,stroke=0);c.setFillColor(GREEN);c.setFont('Helvetica-Bold',12)
+ c.setFillColor(PALE);c.roundRect(52,y-28,508,29,3,fill=1,stroke=0);c.setFillColor(GREEN);c.setFont('Helvetica-Bold',12)
  label=f"Round {event['round']} - {event['level']} / {event['format']} - {event['dayId']}"
- c.drawString(63,y-21,clean(label));y-=49
- check(f"r{event['round']}_enter",'Enter this event')
+ c.acroForm.checkbox(name=f"r{event['round']}_enter",tooltip=clean('Enter '+label),x=62,y=y-21,size=14,borderColor=GREEN,fillColor=white,textColor=GREEN,buttonStyle='check',checked=False,forceBorder=True);fields.append(f"r{event['round']}_enter")
+ c.drawString(86,y-19,clean(label));y-=38
  if event.get('feoFee'):check(f"r{event['round']}_feo",'FEO for this whole round')
  note(details)
  if event['format']=='Working':
@@ -110,8 +111,8 @@ for event in trial['events']:
    if y-row_height<61:
     page();section(f"Round {event['round']} - Working (continued)",int(row_height)+30)
    row([(f"r{event['round']}_{exercise['id']}_level",exercise['name']+' - choose level, or leave Select...',52,508,event['levels'])])
- else:row([(f"r{event['round']}_stream",'Stream',52,180,event['levels']),(f"r{event['round']}_amount",'Event fee (CAD)',280,280)])
- y-=12
+ else:row([(f"r{event['round']}_stream",'Stream',52,180,event['levels']),(f"r{event['round']}_amount",'Event fee (CAD)',280,280)],gap=12)
+ y-=4
 section(('5' if has_partner else '4')+'. Fees, payment & submission',140)
 note('Calculate the total using the per-dog / per-exercise units stated above.')
 row([('total_cad','Total entry fees (CAD)',52,240),('payment_reference','Payment method / reference',320,240)])

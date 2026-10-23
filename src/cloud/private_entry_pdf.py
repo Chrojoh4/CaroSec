@@ -45,7 +45,7 @@ def generate_private_entry_pdf(authorization,body,source=authorized_source,tempo
   trial=value['trial'];content=value.get('content') or {};planning=trial.get('planning') or {}
   if trial.get('id')!=trial_id:raise PdfRequestError(403,'Trial scope could not be verified.')
   data={key:planning.get(key,'') for key in ['host','venue','address','secretary','email']};data.update(title=trial['title'],date=trial['start_date'],endDate=trial['end_date'],timezone=trial['timezone'],premiumVersion='Unpublished draft')
-  data.update({key:content.get(key,'') for key in ['opens','closes','payment','confirmations','waiver','accommodations','moveups','refunds']});data['events']=[]
+  data.update({key:content.get(key,'') for key in ['opens','closes','payment','confirmations','waiver','accommodations','moveups','refunds']});data['savedFeeSummary']='; '.join(str(fee.get('label',''))+' $'+format(fee.get('cents',0)/100,'.2f')+' '+str(fee.get('unit','')) for fee in content.get('fees',[]));data['events']=[]
   for i,event in enumerate(planning.get('events') or []):
    data['events'].append({'id':event['id'],'round':i+1,'dayId':event.get('dayId',''),'level':event.get('level',''),'format':event.get('format',''),'judge':event.get('judge',''),'levels':re.findall(r'[^ ,;]+',event.get('stream','')) or ['Not configured'],'exercises':[{'id':'preview-'+str(n),'name':name.strip()} for n,name in enumerate(re.split(r'[;,\n]+',event.get('exercises',''))) if name.strip()],'basis':'not configured','fee':{'cents':0},'feoFee':None,'previewMissingFee':True})
  if not isinstance(data.get('events'),list) or not 1<=len(data['events'])<=100:raise PdfRequestError(422,'Save between 1 and 100 rounds before generating this proof.')

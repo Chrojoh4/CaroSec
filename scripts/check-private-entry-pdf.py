@@ -20,7 +20,7 @@ class Checks(unittest.TestCase):
   with tempfile.TemporaryDirectory(dir=ROOT/'tmp') as folder:
    data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:fixture(),temporary_root=folder)
    reader=PdfReader(io.BytesIO(data));text=' '.join(p.extract_text() for p in reader.pages)
-   self.assertIn('PRIVATE PROOF',text);self.assertIn('PRICE NOT CONFIGURED',text);self.assertNotIn('Competitive $0.00',text)
+   self.assertIn('PRIVATE PROOF',text);self.assertIn('Fee assignment pending',text);self.assertNotIn('Competitive $0.00',text)
    self.assertIn('handler_name',reader.get_fields());self.assertIn('signature',reader.get_fields())
    writer=PdfWriter();writer.clone_document_from_reader(reader);writer.update_page_form_field_values(None,{'handler_name':'Fictional PDF Test'},auto_regenerate=False)
    output=io.BytesIO();writer.write(output);reopened=PdfReader(io.BytesIO(output.getvalue()));self.assertEqual(reopened.get_fields()['handler_name']['/V'],'Fictional PDF Test')
