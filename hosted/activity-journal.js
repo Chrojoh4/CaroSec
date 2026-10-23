@@ -1,4 +1,4 @@
-import {timestampLabel} from '../src/domain/date-time.js';
+import {timezoneLabel,timestampLabel} from '../src/domain/date-time.js';
 
 export function mountActivityJournal({client,container,action,message}){
  let generation=0;
@@ -6,7 +6,7 @@ export function mountActivityJournal({client,container,action,message}){
  function clear(){generation++;container.hidden=true;container.replaceChildren();}
  async function open(trial){
   clear();const ticket=generation;container.hidden=false;
-  container.append(el('h2','Activity journal'),el('p','Entry receipts, financial records and trial audit activity, newest first. Times use '+trial.timezone+'. Original receipt times are shown only when explicitly recorded. Separate source records may describe the same action.'));
+  container.append(el('h2','Activity journal'),el('p','Entry receipts, financial records and trial audit activity, newest first. Times use '+timezoneLabel(trial.timezone)+'. Original receipt times are shown only when explicitly recorded. Separate source records may describe the same action.'));
   const filters=el('form'),searchLabel=el('label','Search all matching trial activity'),search=el('input'),groupLabel=el('label','Activity type'),group=el('select');search.maxLength=200;search.type='search';searchLabel.append(search);groupLabel.append(group);
   for(const [value,label] of [['all','All activity'],['receipts','Entry receipts'],['payments','Payments and adjustments'],['withdrawals','Withdrawals'],['results','Results and sign-offs'],['incidents','Incident records'],['administration','Trial administration']]){const option=el('option',label);option.value=value;group.append(option);}
   const date=(label)=>{const wrap=el('label',label),input=el('input');input.type='date';wrap.append(input);filters.append(wrap);return input;};

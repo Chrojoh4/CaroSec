@@ -1,6 +1,10 @@
 """Readable secretary premium export; no submission or publication side effects."""
 import json, sys, os, re
 from pathlib import Path
+if __package__:
+ from .time_labels import timezone_label
+else:
+ from time_labels import timezone_label
 from xml.sax.saxutils import escape
 from urllib.parse import urlparse
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,KeepTogether,CondPageBreak
@@ -42,7 +46,7 @@ def table(rows,widths):
 story.extend([p('CARO · TRIAL PREMIUM','sub'),p(data.get('title'),'title')])
 notice='FICTIONAL TEST TRIAL — no real entries, payments or CARO submission.' if data.get('fictional') else ('CARO trial '+str(data.get('trialNumber',''))+' · Secretary reviewed premium' if data.get('publicationReady') else 'SECRETARY PREVIEW — verify approval, fees, agreement and entry links before distribution.')
 story.append(p(notice,'notice'))
-story.append(p(str(data.get('date',''))+' to '+str(data.get('endDate') or data.get('date',''))+' · '+str(data.get('timezone','')),'sub'))
+story.append(p(str(data.get('date',''))+' to '+str(data.get('endDate') or data.get('date',''))+' · '+timezone_label(data.get('timezone')),'sub'))
 story.extend([p(data.get('host')),p(str(data.get('venue',''))+'\n'+str(data.get('address','')))])
 story.append(HRFlowable(width='100%',thickness=2,color=gold,spaceBefore=8,spaceAfter=12))
 section('Welcome',data.get('intro'))

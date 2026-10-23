@@ -41,6 +41,12 @@ test('printed incident report displays the venue date, offset and zone while sou
   const occurredAt='2026-10-19T01:00:00Z';
   const state={trials:{t:{id:'t',title:'Test',timezone:'America/Edmonton'}},entries:[],incidents:[{trialId:'t',occurredAt,category:'Other',description:'Test'}]};
   const report=workingReport(state,'t','incidents');
-  assert.match(report,/Oct 18, 2026/);assert.match(report,/GMT-6/);assert.match(report,/America\/Edmonton/);
+  assert.match(report,/Oct 18, 2026/);assert.match(report,/GMT-6/);assert.match(report,/Mountain Time/);assert.equal(report.includes('America/Edmonton'),false);
   assert.equal(state.incidents[0].occurredAt,occurredAt);
+});
+
+test('Pacific display names omit the reference city while offsets remain date-aware',()=>{
+ assert.equal(timestampLabel('2026-11-29T20:00:00Z','America/Vancouver').includes('Vancouver'),false);
+ assert.match(timestampLabel('2026-11-29T20:00:00Z','America/Vancouver'),/GMT-8/);
+ assert.match(timestampLabel('2026-07-29T20:00:00Z','America/Vancouver'),/GMT-7/);
 });

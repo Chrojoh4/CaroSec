@@ -19,3 +19,6 @@ Calendar validation is shared between the application and operational records. N
 ## Verification
 
 Regression tests exercise invalid dates, explicit offset requirements, midnight differences, Newfoundland's half-hour zone, spring-forward and repeated fall-back times, venue-zone reports, and child processes running in UTC, Vancouver and Tokyo. Existing calendar dates and consecutive-day arithmetic remain identical across those machine zones. Browser check confirms activity records show the venue timezone. All 47 tests pass, including venue-midnight entry closing.
+
+
+October 23, 2026 display update: keep IANA identifiers in stored data only. Trial banners omit the identifier; premium builders, setup selectors, journals, printable reports and PDF exports use neutral region names such as Pacific Time. Timestamp labels show the instant-specific GMT offset without a reference-city suffix. Calendar-date and UTC storage behavior remains unchanged. Previously downloaded files retain their original text and must be regenerated.

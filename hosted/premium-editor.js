@@ -1,3 +1,4 @@
+import {timezoneLabel} from '../src/domain/date-time.js';
 import {publicationControls} from './publication.js';
 import {hostedPremium,premiumTextFields} from '../src/domain/hosted-premium.js';
 import {renderPremium} from '../src/domain/premium.js';
@@ -21,7 +22,7 @@ export function mountPremiumEditor({client,container,action,message,navigate}){
    for(const a of amendments.data)notice.append(el('p','Amendment '+a.version+': '+a.public_notice+' · Attending: '+a.officiating_judge+' · Results credit: '+a.results_judge));
    container.append(notice);if(navigate){const manage=el('button','Review judge replacements and notify entrants');manage.type='button';manage.className='secondary';manage.addEventListener('click',()=>navigate('judge-amendments'));container.append(manage);}}
   const source=hostedPremium(trial,content),details=el('article');details.append(el('h3','Information from your saved trial'));
-  for(const [label,value] of [['Host',source.host],['Dates',source.date+' to '+source.endDate],['Timezone',source.timezone],['Venue',source.venue],['Address',source.address],['Secretary',source.secretary],['Contact email',source.email],['Chairperson',source.chair]])details.append(el('p',label+': '+(value||'Not entered in trial details')));
+  for(const [label,value] of [['Host',source.host],['Dates',source.date+' to '+source.endDate],['Time zone',timezoneLabel(source.timezone)],['Venue',source.venue],['Address',source.address],['Secretary',source.secretary],['Contact email',source.email],['Chairperson',source.chair]])details.append(el('p',label+': '+(value||'Not entered in trial details')));
   details.append(el('h4','Scheduled rounds'));
   for(const event of source.events)details.append(el('p','Round '+event.round+' · '+Object.entries(event).filter(([key,value])=>key!=='id'&&key!=='round'&&typeof value==='string'&&value).map(([,value])=>value).join(' · ')));
   if(!source.events.length)details.append(el('p','No rounds saved. Add rounds in trial details before preparing entry pricing.'));

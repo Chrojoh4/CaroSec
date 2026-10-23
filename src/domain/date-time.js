@@ -33,6 +33,15 @@ export function timestampLabel(value, timeZone) {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone, year:'numeric', month:'short', day:'numeric', hour:'numeric',
       minute:'2-digit', second:'2-digit', timeZoneName:'shortOffset',
-    }).format(date) + ` [${timeZone}]`;
+    }).format(date);
   } catch { return 'Time unavailable (check timestamp and trial timezone)'; }
 }
+
+// Human-facing region label; keep the IANA identifier only as stored configuration.
+export function timezoneLabel(timeZone){
+ try{return new Intl.DateTimeFormat('en-CA',{timeZone,timeZoneName:'longGeneric'}).formatToParts(new Date('2026-01-15T12:00:00Z')).find(part=>part.type==='timeZoneName').value;}
+ catch{return 'Local trial time';}
+}
+
+export const timezoneChoices=[['America/Vancouver','Pacific Time'],['America/Edmonton','Mountain Time'],['America/Regina','Saskatchewan Time'],['America/Winnipeg','Central Time'],['America/Toronto','Eastern Time'],['America/Halifax','Atlantic Time'],['America/St_Johns','Newfoundland Time'],['America/Whitehorse','Yukon Time']];
+export function timezoneChoicesFor(current){return timezoneChoices.some(([value])=>value===current)||!current?timezoneChoices:[...timezoneChoices,[current,timezoneLabel(current)]];}

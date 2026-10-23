@@ -1,4 +1,4 @@
-import { timestampLabel } from '/date-time.js';
+import { timezoneLabel, timezoneChoicesFor, timestampLabel } from '/date-time.js';
 import { sampleDraft } from '/sample.js';
 import { renderPremium, validatePremium, publishEdition, sourceKey, escapeHtml as e } from '/premium.js';
 import { SHARED_KEYS, createTrialWorkspace, hydrateTrial, premiumFromTrial, syncTrialFromPremium } from '/trial-workspace.js';
@@ -48,6 +48,7 @@ function save() {
   catch { $('#save-state').textContent = 'Not saved — export a backup'; toast('Browser storage is unavailable or full. Please export a backup.'); }
 }
 function field(key, label, type = 'text', hint = '') {
+  if(key==='timezone')return `<label class="field"><span>${label}</span><select data-key="timezone">${timezoneChoicesFor(draft.timezone).map(([value,text])=>`<option value="${e(value)}" ${value===draft.timezone?'selected':''}>${e(text)}</option>`).join('')}</select></label>`;
   return `<label class="field"><span>${label}</span>${type === 'textarea' ? `<textarea data-key="${key}" rows="3">${e(draft[key])}</textarea>` : `<input data-key="${key}" type="${type}" value="${e(draft[key])}">`}${hint ? `<small>${hint}</small>` : ''}</label>`;
 }
 const check = (key, label) => `<label class="check-field"><input type="checkbox" data-key="${key}" ${draft[key] ? 'checked' : ''}><span>${label}</span></label>`;
