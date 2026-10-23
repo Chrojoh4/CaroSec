@@ -32,6 +32,7 @@ export function mountPremiumEditor({client,container,action,message,navigate}){
   if(ticket!==generation)return;
   if(listingError)container.append(el('p','Current published entry links could not be verified. Refresh before distributing this premium.'));
   function linkedPremium(content){const draft=hostedPremium(trial,content);if(listing&&!listingError){draft.entryPdfUrl=location.origin+'/api/entry-form?trial='+encodeURIComponent(listing.slug);if(listing.online_enabled)draft.entryUrl=location.origin+'/public-trial.html?trial='+encodeURIComponent(listing.slug);}return draft;}
+  if(navigate){const reviewEntry=el('button','Preview entry form (read-only)');reviewEntry.type='button';reviewEntry.className='secondary';reviewEntry.addEventListener('click',()=>navigate('entry-preview'));container.append(reviewEntry);}
   const form=el('form'),preview=el('div'),fees=el('div');fees.id='premium-fees';
   for(const key of premiumTextFields){const label=el('label',labels[key]||'Colour palette');let input;if(key==='theme'){input=el('select');for(const name of ['forest','ocean','berry']){const option=el('option',name);option.value=name;input.append(option);}}else input=el(['opens','closes'].includes(key)?'input':'textarea');input.name=key;if(['opens','closes'].includes(key))input.type='date';input.value=content[key]||(key==='theme'?'forest':'');input.maxLength=10000;label.append(input);form.append(label);}
   form.append(el('h3','Fees in Canadian dollars'),el('p','State the unit explicitly: per dog, per event entry/group, or per selected Working exercise.'),fees);

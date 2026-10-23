@@ -25,3 +25,5 @@
 #sidebar button[aria-current=page]{background:#175b47;color:white;border-color:#175b47}#club-setup{margin:1.5rem 0;padding:1rem;border:1px solid #b8c9be;border-radius:10px}#club-setup summary{cursor:pointer;font-weight:700;min-height:48px}#premium-panel textarea{font:inherit;min-height:110px;width:100%;padding:.7rem;border:1px solid #687f74;border-radius:8px}
 
 #judge-amendments-panel textarea{font:inherit;width:100%;min-height:110px;padding:.8rem;border:1px solid #687f74;border-radius:8px}#judge-amendments-panel .review-check{display:flex;gap:.8rem}#judge-amendments-panel input[type=checkbox]{width:26px;min-width:26px;min-height:26px}
+
+.readonly-entry-preview input:disabled,.readonly-entry-preview select:disabled,.readonly-entry-preview textarea:disabled{opacity:1;color:#354b42;background:#f1f4ef;cursor:default}.readonly-entry-preview button:disabled{opacity:.8;cursor:default}.readonly-entry-preview .entry-submit-bar{padding:1rem;background:#e3eee7;font-weight:650}
