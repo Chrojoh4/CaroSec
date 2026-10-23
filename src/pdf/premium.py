@@ -6,7 +6,7 @@ if __package__:
 else:
  from time_labels import timezone_label
 from xml.sax.saxutils import escape
-from urllib.parse import urlparse
+from urllib.parse import urlparse,quote
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,KeepTogether,CondPageBreak
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
@@ -47,7 +47,12 @@ story.extend([p('CARO · TRIAL PREMIUM','sub'),p(data.get('title'),'title')])
 notice='FICTIONAL TEST TRIAL — no real entries, payments or CARO submission.' if data.get('fictional') else ('CARO trial '+str(data.get('trialNumber',''))+' · Secretary reviewed premium' if data.get('publicationReady') else 'SECRETARY PREVIEW — verify approval, fees, agreement and entry links before distribution.')
 story.append(p(notice,'notice'))
 story.append(p(str(data.get('date',''))+' to '+str(data.get('endDate') or data.get('date',''))+' · '+timezone_label(data.get('timezone')),'sub'))
-story.extend([p(data.get('host')),p(str(data.get('venue',''))+'\n'+str(data.get('address','')))])
+story.extend([p(data.get('host')),p(data.get('venue'))])
+address=str(data.get('address') or '').strip()
+if address:
+ map_url='https://www.google.com/maps/search/?api=1&query='+quote(address,safe='')
+ story.append(Paragraph('<link href="'+escape(map_url,{'"':'&quot;'})+'" color="#164b3c"><u>'+escape(address)+'</u></link>',styles['body']))
+
 story.append(HRFlowable(width='100%',thickness=2,color=gold,spaceBefore=8,spaceAfter=12))
 section('Welcome',data.get('intro'))
 story.append(p('Entry essentials','heading'))

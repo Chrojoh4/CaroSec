@@ -13,3 +13,8 @@ test('published judge amendments show latest attending judge, keep original fees
  const value={kind:'public_entry_edition',publicationReady:true,version:1,configuration:{title:'Trial',events:[{id:'round-a',round:1,judge:'Original Judge',levels:[],fee:{cents:2400}}]},judgeAmendments:[{eventId:'round-a',round:1,version:1,officiatingJudge:'Replacement',resultsJudge:'Original Judge',notice:'<script>private</script>',recordedAt:'2026-10-23T20:00:00Z'},{eventId:'round-a',round:1,version:2,officiatingJudge:'Second Replacement',resultsJudge:'Original Judge',notice:'Updated public notice'}]};
  const html=publicPremiumHtml(value);assert.ok(html.includes('Second Replacement<br>Results credit: Original Judge'));assert.ok(html.includes('$24.00'));assert.ok(html.includes('&lt;script&gt;'));assert.equal(html.includes('<script>'),false);assert.equal(value.configuration.events[0].judge,'Original Judge');
 });
+
+test('published premium includes venue map and paper entry download in printable content',()=>{
+ const value={kind:'public_entry_edition',publicationReady:true,slug:'pat-truit',configuration:{title:'Trial',address:'3345 Bulman Road, Kelowna, BC V1X 7V1',email:'host@example.com',events:[]}};
+ const html=publicPremiumHtml(value);assert.ok(html.includes('https://www.google.com/maps/search/?api=1&amp;query=3345%20Bulman'));assert.ok(html.includes('/api/entry-form?trial=pat-truit'));assert.ok(html.includes('Download fillable paper / email entry form'));assert.ok(html.includes('host@example.com'));
+});
