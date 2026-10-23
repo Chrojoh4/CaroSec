@@ -41,6 +41,10 @@ class Checks(unittest.TestCase):
   source=desk(format='Working');source['completed']={'signoff':'Fictional signoff'};source['runs'][0]['stream']=None;source['runs'][0]['exercises']=[{'id':'ex1','level':'Rookie'}];source['runs'][0]['offeredExercises']=[{'id':'ex1','name':'Selected test exercise'},{'id':'ex2','name':'UNSELECTED-EXERCISE'}]
   reader=PdfReader(io.BytesIO(self.render(source)));text=' '.join(page.extract_text() for page in reader.pages)
   self.assertIn('Selected test exercise',text);self.assertNotIn('UNSELECTED-EXERCISE',text);self.assertIn('TRIAL RECORD COMPLETE',text)
+ def test_replacement_keeps_course_credit_visible(self):
+  source=desk();source['event']['officiatingJudge']='Replacement Attending Judge'
+  reader=PdfReader(io.BytesIO(self.render(source)));text=' '.join(p.extract_text() for p in reader.pages)
+  self.assertIn('Attending judge: Replacement Attending Judge',text);self.assertIn('Results credit: Fictional Judge',text)
  def test_empty_round_prints_explicit_blank_verification(self):
   reader=PdfReader(io.BytesIO(self.render(desk(0))));self.assertEqual(len(reader.pages),1);self.assertIn('No active accepted runs',reader.pages[0].extract_text())
  def test_configuration_rejects_server_secret_as_publishable_key(self):

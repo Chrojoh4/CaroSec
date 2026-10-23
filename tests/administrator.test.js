@@ -14,7 +14,7 @@ test('System Administrator crosses clubs without granting ordinary staff access 
  grant usage on schema auth to anon,authenticated,service_role;grant execute on function auth.uid(),auth.jwt() to anon,authenticated,service_role;
  insert into auth.users values('${admin}','admin@example.com'),('${owner}','owner@example.com');`);
  for(const file of ['202610190001_caro_foundation.sql','20261020153706_hosted_trial_drafts.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
- const bundle=await databaseUpdate();assert.equal(bundle.files.length,16);await db.exec(bundle.sql);
+ const bundle=await databaseUpdate();assert.equal(bundle.files.length,17);await db.exec(bundle.sql);
  const as=async(user,claims='{}')=>{await db.exec('reset role;set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[user,claims]);};
  const one=async(sql,args=[])=>(await db.query(sql,args)).rows[0];
  await as(owner);const club=(await one("select public.caro_create_club('Other club','America/Edmonton') id")).id;
@@ -314,6 +314,11 @@ test('System Administrator crosses clubs without granting ordinary staff access 
   const input={trialId:trial,idempotencyKey:'published-paper',contact:{name:'Publication Handler',email:'test@example.com',phone:'555',address:'Test address'},dog:{name:'Publication Dog',caroId:'PUBLIC-TEST-1',breed:'Mixed',birthDate:'2020-01-01',height:'18',jumpHeight:'12'},selections:[{eventId:preview.configuration.events[0].id,stream:'B'}],agree:true,eligibilityDeclared:true,intakeEvidence:'Fictional signed form'};
   const received=(await one('select public.caro_record_manual_entry($1,0,$2,$3) result',[trial,'paper',input])).result;
   assert.equal((await one('select premium_id from public.caro_entries where id=$1',[received.entryId])).premium_id,first.id);
+  const replace=(await one('select public.caro_amend_judge($1,0,$2,$3,true,$4,$5,$6,true) result',[preview.configuration.events[0].id,crypto.randomUUID(),'Published Replacement','STAFF PRIVATE replacement reason','STAFF PRIVATE CARO correspondence','Public judge change notice'])).result;
+  await db.exec('reset role;set role anon');const amended=(await one("select public.caro_public_premium('publication-test') result")).result;
+  assert.equal(amended.premiumId,first.id);assert.deepEqual(amended.configuration,published.configuration);assert.equal(amended.judgeAmendments[0].officiatingJudge,'Published Replacement');assert.equal(JSON.stringify(amended).includes('STAFF PRIVATE'),false);
+  await assert.rejects(()=>db.query('select * from public.caro_judge_amendments'),/permission denied/);
+  await as(owner);const revisedPreview=(await one('select public.caro_publication_preview($1) result',[trial])).result;assert.equal(revisedPreview.judgeAmendments.length,1);
   await one('select public.caro_save_premium_draft($1,0,$2) result',[trial,{waiver:'New private wording'}]);
   const frozen=(await one('select public.caro_publication_preview($1) result',[trial])).result;
   assert.equal(frozen.usesFrozenTerms,true);assert.equal(frozen.content.waiver,preview.content.waiver);assert.equal(frozen.configuration.waiver,preview.configuration.waiver);
@@ -382,6 +387,37 @@ test('System Administrator crosses clubs without granting ordinary staff access 
   await assert.rejects(()=>db.query('update public.caro_incidents set description=$1',['Overwrite']),/permission denied/);
   await as(admin);assert.equal((await one('select count(*)::int n from public.caro_incidents')).n,0);await assert.rejects(()=>db.query(record,args),/Trial access required/);
   await db.exec('reset role');await assert.rejects(()=>db.query('delete from public.caro_incidents where id=$1',[first.id]),/Append-only/);
+ });
+
+ await t.test('judge replacement preserves original attribution and locked history, rejects stale/foreign/scored rounds',async()=>{
+  await as(owner);const trial='20000000-0000-0000-0000-000000000001';
+  const events=(await db.query('select id,judge_name from public.caro_events where trial_id=$1 order by official_round',[trial])).rows;
+  const event=events[0],key=crypto.randomUUID(),sql='select public.caro_amend_judge($1,$2,$3,$4,$5,$6,$7,$8,$9) result';
+  const args=[event.id,0,key,'Replacement Judge',true,'Original judge unable to attend','CARO correspondence reference 23','Replacement Judge will attend using the original approved courses.',true];
+  const before=(await one('select public.caro_event_desk($1) result',[event.id])).result;
+  const first=(await one(sql,args)).result;assert.equal(first.resultsJudge,event.judge_name);assert.equal(first.officiatingJudge,'Replacement Judge');
+  assert.deepEqual((await one(sql,args)).result,first);
+  const after=(await one('select public.caro_event_desk($1) result',[event.id])).result;
+  assert.equal(after.event.judge,event.judge_name);assert.equal(after.event.officiatingJudge,'Replacement Judge');assert.notEqual(before.reviewToken,after.reviewToken);
+  assert.equal((await one('select judge_name from public.caro_events where id=$1',[event.id])).judge_name,event.judge_name);
+  await assert.rejects(()=>db.query(sql,[...args.slice(0,2),crypto.randomUUID(),...args.slice(3)]),/assignment changed/);
+  await assert.rejects(()=>db.query(sql,[event.id,1,crypto.randomUUID(),'Another Judge',false,'Reason for replacement','CARO reference','Public replacement notice',false]),/Review the replacement/);
+  const second=(await one(sql,[event.id,1,crypto.randomUUID(),'New Course Judge',false,'Replacement with new approved course','CARO course approval reference','Replacement uses their own approved course.',true])).result;assert.equal(second.resultsJudge,'New Course Judge');
+  const snapshot=(await one('select public.caro_report_snapshot($1) result',[trial])).result;assert.equal(snapshot.trial.events[0].judge,'New Course Judge');
+  const source=await one("select * from public.caro_entries where idempotency_key='manual-intake-1'");
+  await db.exec('reset role');const entry=(await one("insert into public.caro_entries(club_id,trial_id,premium_id,idempotency_key,request_hash,receipt_token_hash,intake_channel,details,amount_cents,agreement_version,agreement_accepted_at,status) values($1,$2,$3,'amend-score-test','test',md5('amend-score-test')||md5('amend-score-receipt'),'paper',$4,2500,'test',now(),'accepted') returning id",[club,trial,source.premium_id,{contact:{name:'Test Handler'},dog:{name:'Test Dog',caroId:'AMEND-TEST'},selections:[{eventId:event.id,status:'accepted',stream:'B'}]}])).id;
+  await as(owner);const scoring='select public.caro_record_assigned_judge_score($1,$2,0,0,$3,$4,60,true,$5,$6) result';
+  await assert.rejects(()=>db.query(scoring,[entry,event.id,crypto.randomUUID(),{outcome:'Q',score:190},'',1]),/assignment changed/);
+  await assert.rejects(()=>db.query('select public.caro_record_judge_score($1,$2,0,0,$3,$4,60,true,$5)',[entry,event.id,crypto.randomUUID(),{outcome:'Q',score:190},'']),/assignment changed/);
+  await one(scoring,[entry,event.id,crypto.randomUUID(),{outcome:'Q',score:190},'',2]);assert.equal((await one('select judge_name from public.caro_scores where entry_id=$1',[entry])).judge_name,'New Course Judge');
+  const scored=(await one('select event_id from public.caro_scores limit 1')).event_id;
+  await assert.rejects(()=>db.query(sql,[scored,0,crypto.randomUUID(),'Cannot Replace',true,'Judge replacement after scoring','CARO reference','Public notice of replacement',true]),/Scored or completed/);
+  await assert.rejects(()=>db.query('update public.caro_judge_amendments set officiating_judge=$1',['Overwrite']),/permission denied/);
+  await db.exec('reset role');await assert.rejects(()=>db.query('delete from public.caro_judge_amendments where id=$1',[first.id]),/Append-only/);
+  await as(admin);
+  await as(admin);
+  assert.equal((await one('select count(*)::int n from public.caro_judge_amendments')).n,0);await assert.rejects(()=>db.query(sql,args),/Trial access required/);
+
  });
 
 });

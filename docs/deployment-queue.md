@@ -71,3 +71,7 @@ Run `node scripts/prepare-release.js` to create an allowlisted source snapshot a
 Deploy the Python entry-form function and Node online-entry/entry-receipt functions alongside the protected judge PDF and optional lookup. See hosted-public-entry.md for the server-only configuration and explicit online-publication gate. No server credential is included.
 
 The prepared application-transfer helper adds caro-application-helper.zip to the explicit public asset allowlist. It is a manually installed Chrome/Edge extension, with active-tab/scripting/session-storage permissions and no server credential. Hosted application fields can be exported to JSON; full official event/judge entry still needs browser verification. No new database migration is required for this helper.
+
+## October 23 judge replacement update
+
+Prepared additional migration: `20261023213043_judge_replacements.sql`. Apply only after the earlier schema is verified, then deploy the matching frontend and judge PDF code. The new result endpoint checks assignment version; old scoring clients cannot write an amended round. The connected account currently lists C-WAGS and SDDA, not CARO project rootupwvjwfterxhfwqx; no remote schema changes were performed. See judge-replacements.md. Exercise a published test premium, original-course credit, replacement-course credit, private notification CSV, stale score editor, and scored/completed rejection in browser acceptance.

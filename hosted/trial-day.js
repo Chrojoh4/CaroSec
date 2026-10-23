@@ -16,7 +16,8 @@ export function mountTrialDay({client,container,action,message}){
    const loadTicket=++loadGeneration,eventId=select.value,data=await rpc('caro_event_desk',{p_event:eventId});
    if(ticket!==generation||loadTicket!==loadGeneration)return;currentEvent=eventId;scoreDirty=false;orderDirty=false;roundRoot.replaceChildren();
    if(data.event.trialId!==trial.id)throw new Error('Round access could not be verified.');
-   roundRoot.append(el('h3','Round '+data.event.round+' · Judge '+data.event.judge),el('p',data.runs.length+' active runs · '+(data.completed?'Trial Record complete':'Not signed off')));
+   roundRoot.append(el('h3','Round '+data.event.round+' · Attending judge '+(data.event.officiatingJudge||data.event.judge)),el('p',data.runs.length+' active runs · '+(data.completed?'Trial Record complete':'Not signed off')));
+   if(data.event.officiatingJudge&&data.event.officiatingJudge!==data.event.judge)roundRoot.append(el('p','Results credit: '+data.event.judge+' (approved course attribution).'));
    if(data.completed)roundRoot.append(el('p','Sign-off evidence: '+data.completed.signoff));
    const printForm=el('form'),startLabel=el('label','First running-order number'),start=el('input'),countLabel=el('label','Number of sheets (up to 100)'),count=el('input');
    start.type=count.type='number';start.min=count.min='1';start.max=String(Math.max(1,data.runs.length));count.max='100';start.value='1';count.value=String(Math.min(100,data.runs.length||1));start.required=count.required=true;start.step=count.step='1';startLabel.append(start);countLabel.append(count);printForm.append(el('h4','Judge working sheets'),el('p','Download the current round or a print range. Working layouts must be checked against current official CARO forms.'),startLabel,countLabel);
@@ -42,7 +43,7 @@ export function mountTrialDay({client,container,action,message}){
    saveOrder.addEventListener('click',()=>action(async()=>{if(scoreDirty)throw new Error('Save or discard the current result first.');inFlight=true;try{await rpc('caro_save_running_order',{p_event:eventId,p_revision:data.orderRevision,p_request:orderKey,p_entries:order.map(run=>run.entryId)});if(ticket!==generation)return;orderDirty=false;await load();message('Running order saved. Official round identity is unchanged.');}finally{inFlight=false;}}));
    roundRoot.append(list,saveOrder,scorePane);renderOrder();
    function renderScore(run){
-    scoreDirty=false;scorePane.replaceChildren();scorePane.append(el('h4',run.dog.name+' · '+(run.score?'Transcription correction':'Judge-provided result')),el('p','Assigned judge: '+data.event.judge+(run.score?' · Current version '+run.score.version:'')));
+    scoreDirty=false;scorePane.replaceChildren();scorePane.append(el('h4',run.dog.name+' · '+(run.score?'Transcription correction':'Judge-provided result')),el('p','Results credited to: '+data.event.judge+(run.score?' · Current version '+run.score.version:'')));
     const form=el('form');form.className='trial-day-form';let requestKey=crypto.randomUUID();const fields=[];
     function outcome(label,values,current){const wrap=el('label',label),select=el('select'),blank=el('option','Select judge outcome');blank.value='';select.append(blank);for(const value of values){const option=el('option',value);option.value=value;select.append(option);}select.value=current||'';select.required=true;wrap.append(select);form.append(wrap);return select;}
     let rallyScore,rallyOutcome;
@@ -54,7 +55,7 @@ export function mountTrialDay({client,container,action,message}){
     const save=el('button',run.score?'Record correction':'Save judge result');save.type='submit';form.append(save);form.addEventListener('input',()=>{scoreDirty=true;});form.addEventListener('change',()=>{scoreDirty=true;});
     form.addEventListener('submit',event=>{event.preventDefault();action(async()=>{if(orderDirty)throw new Error('Save the running order first.');const outcomeValue=data.event.format==='Working'?fields.map(field=>({id:field.id,outcome:field.input.value})):{outcome:rallyOutcome.value,score:rallyScore.value===''?null:Number(rallyScore.value)};
      const controls=[...form.querySelectorAll('input,select')];controls.forEach(control=>control.disabled=true);inFlight=true;
-     try{await rpc('caro_record_judge_score',{p_entry:run.entryId,p_event:eventId,p_entry_revision:run.entryRevision,p_version:run.score?.version||0,p_request:requestKey,p_outcome:outcomeValue,p_elapsed:Number(elapsed.value),p_confirmed:confirmed.checked,p_reason:reason.value.trim()});if(ticket!==generation)return;scoreDirty=false;await load();message('Judge-provided result saved. Prior versions remain in history.');}finally{inFlight=false;controls.forEach(control=>control.disabled=false);}
+     try{await rpc('caro_record_assigned_judge_score',{p_entry:run.entryId,p_event:eventId,p_entry_revision:run.entryRevision,p_version:run.score?.version||0,p_request:requestKey,p_outcome:outcomeValue,p_elapsed:Number(elapsed.value),p_confirmed:confirmed.checked,p_reason:reason.value.trim(),p_assignment_version:data.event.assignmentVersion??0});if(ticket!==generation)return;scoreDirty=false;await load();message('Judge-provided result saved. Prior versions remain in history.');}finally{inFlight=false;controls.forEach(control=>control.disabled=false);}
     });});scorePane.append(form);scorePane.scrollIntoView({behavior:'smooth'});
    }
    if(!data.completed){

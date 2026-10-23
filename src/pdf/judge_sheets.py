@@ -25,7 +25,7 @@ def build_judge_sheets(packet,target):
    if not first:story.append(PageBreak())
    first=False
    story.append(RunMarker(f"Round {event['round']} | Run {run['run'] if run else '-'} | Entry {run['entryId'] if run else 'No active entries'}"))
-   story.extend([p('Judge working score sheet','title'),p(packet['title'],'heading'),p('FICTIONAL TEST TRIAL' if packet.get('fictional') else 'Secretary working layout - use current official CARO forms where required'),p(f"Trial {packet.get('trialNumber') or 'Not sanctioned'} | {packet['host']}"),p(f"{event['date']} | Round {event['round']} | {event['format'] if event['format']=='Working' else event['level']+' '+event['format']}"),p(f"Judge: {event['judge']} | Timezone: {packet['timezone']}")])
+   story.extend([p('Judge working score sheet','title'),p(packet['title'],'heading'),p('FICTIONAL TEST TRIAL' if packet.get('fictional') else 'Secretary working layout - use current official CARO forms where required'),p(f"Trial {packet.get('trialNumber') or 'Not sanctioned'} | {packet['host']}"),p(f"{event['date']} | Round {event['round']} | {event['format'] if event['format']=='Working' else event['level']+' '+event['format']}"),p(f"Attending judge: {event.get('officiatingJudge') or event['judge']}"),p(f"Results credit: {event['judge']} | Timezone: {packet['timezone']}")])
    if event['complete']:story.append(p('TRIAL RECORD COMPLETE - working reprint; do not overwrite signed results.'))
    if run is None:
     story.extend([Spacer(1,16),p('No active accepted runs in this event.','heading'),p('Secretary verification: ____________________   Date: ______________')]);continue

@@ -65,7 +65,7 @@ def generate_judge_pdf(authorization,body,rpc=authorized_round,temporary_root=No
    'exercises':[{'name':names.get(item['id']) or item['id'],'level':item.get('level','')} for item in run.get('exercises') or []],
    'accommodation':'Confirm accommodation instructions with the secretary.'})
  packet={'title':event.get('title',''),'host':event.get('host') or '','trialNumber':event.get('trialNumber') or '','timezone':event['timezone'],'fictional':event.get('fictional') is True or 'TEST ONLY' in event.get('title',''),
-  'events':[{'id':event_id,'round':event['round'],'date':event['date'],'format':event['format'],'level':event['level'],'judge':event['judge'],'complete':bool(desk.get('completed')),'runs':runs}]}
+  'events':[{'id':event_id,'round':event['round'],'date':event['date'],'format':event['format'],'level':event['level'],'judge':event['judge'],'officiatingJudge':event.get('officiatingJudge') or event['judge'],'complete':bool(desk.get('completed')),'runs':runs}]}
  with tempfile.TemporaryDirectory(prefix='caro-judges-',dir=temporary_root) as directory:
   path=Path(directory)/'judge-sheets.pdf';build_judge_sheets(packet,path);result=path.read_bytes()
  if len(result)>4_000_000:raise PdfRequestError(413,'Choose fewer runs and download this round in smaller groups.')

@@ -8,3 +8,8 @@ test('public premium renderer requires a published projection and escapes host c
  const html=publicPremiumHtml(value);assert.ok(html.includes('&lt;script&gt;'));assert.ok(html.includes('&lt;img'));assert.ok(html.includes('$25.00'));assert.equal(html.includes('<script>'),false);
  for(const forged of [{...value,publicationReady:false},{...value,kind:'private_review_copy'},{...value,configuration:null}])assert.throws(()=>publicPremiumHtml(forged),/unavailable/);
 });
+
+test('published judge amendments show latest attending judge, keep original fees, and escape public notices',()=>{
+ const value={kind:'public_entry_edition',publicationReady:true,version:1,configuration:{title:'Trial',events:[{id:'round-a',round:1,judge:'Original Judge',levels:[],fee:{cents:2400}}]},judgeAmendments:[{eventId:'round-a',round:1,version:1,officiatingJudge:'Replacement',resultsJudge:'Original Judge',notice:'<script>private</script>',recordedAt:'2026-10-23T20:00:00Z'},{eventId:'round-a',round:1,version:2,officiatingJudge:'Second Replacement',resultsJudge:'Original Judge',notice:'Updated public notice'}]};
+ const html=publicPremiumHtml(value);assert.ok(html.includes('Second Replacement<br>Results credit: Original Judge'));assert.ok(html.includes('$24.00'));assert.ok(html.includes('&lt;script&gt;'));assert.equal(html.includes('<script>'),false);assert.equal(value.configuration.events[0].judge,'Original Judge');
+});

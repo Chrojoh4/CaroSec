@@ -12,7 +12,7 @@ export function publicationControls({client,trial,action,message,isCurrent,isDir
   if(isDirty())throw new Error('Save the premium draft before reviewing publication.');
   const {data,error}=await client.rpc('caro_publication_preview',{p_trial:trial.id});if(!isCurrent())return;if(error)throw new Error(error.message);
   source=data;review.checked=false;publish.disabled=false;pending=null;
-  preview.innerHTML=publicPremiumHtml({kind:'public_entry_edition',publicationReady:true,configuration:data.configuration,content:data.content,version:'for review'});
+  preview.innerHTML=publicPremiumHtml({kind:'public_entry_edition',publicationReady:true,configuration:data.configuration,content:data.content,judgeAmendments:data.judgeAmendments,version:'for review'});
   message(data.usesFrozenTerms?'Reviewing the frozen terms already used for received entries.':'Reviewing the saved application, premium and entry pricing.');
  }));
  publish.addEventListener('click',()=>action(async()=>{

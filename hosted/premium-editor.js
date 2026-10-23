@@ -14,6 +14,12 @@ export function mountPremiumEditor({client,container,action,message,navigate}){
   if(ticket!==generation)return;
   if(error)throw new Error('Premium drafts need the premium database setup SQL and trial access.');
   trial=structuredClone(value);revision=data?.revision??-1;dirty=false;const content=data?.content||{};container.hidden=false;container.replaceChildren();container.append(el('h2','Premium builder'),el('p','Private draft. Trial identity, officials, dates and events come from the saved application. Saving or downloading does not publish entries or record CARO approval.'));
+  const amendments=await client.from('caro_judge_amendments').select('event_id,version,officiating_judge,results_judge,public_notice').eq('trial_id',trial.id).order('version',{ascending:false});
+  if(ticket!==generation)return;
+  if(amendments.error)container.append(el('p','Judge replacement history is unavailable. Confirm database setup before issuing revised materials.'));
+  else if(amendments.data.length){const notice=el('article');notice.append(el('h3','Recorded judge replacements'),el('p','The original trial source and frozen editions remain unchanged. The public premium displays these amendments alongside the original edition.'));
+   for(const a of amendments.data)notice.append(el('p','Amendment '+a.version+': '+a.public_notice+' · Attending: '+a.officiating_judge+' · Results credit: '+a.results_judge));
+   container.append(notice);if(navigate){const manage=el('button','Review judge replacements and notify entrants');manage.type='button';manage.className='secondary';manage.addEventListener('click',()=>navigate('judge-amendments'));container.append(manage);}}
   const source=hostedPremium(trial,content),details=el('article');details.append(el('h3','Information from your saved trial'));
   for(const [label,value] of [['Host',source.host],['Dates',source.date+' to '+source.endDate],['Timezone',source.timezone],['Venue',source.venue],['Address',source.address],['Secretary',source.secretary],['Contact email',source.email],['Chairperson',source.chair]])details.append(el('p',label+': '+(value||'Not entered in trial details')));
   details.append(el('h4','Scheduled rounds'));

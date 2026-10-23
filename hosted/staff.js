@@ -1,3 +1,4 @@
+import {mountJudgeAmendments} from './judge-amendments.js';
 import {mountOverview} from './overview.js';
 import {createBrowserAuth} from '../src/cloud/auth.js';
 import {loadWorkspace,createClub} from '../src/cloud/workspace.js';
@@ -15,7 +16,7 @@ import {mountReports} from './reports.js';
 import sampleTrial from '../fixtures/rallypaws-practice-trial.json';
 const $=id=>document.getElementById(id);
 let selectedSection='overview';
-let overview,client,busy=false,editor,administration,premiumEditor,sanctionEditor,journal,finance,entrySettings,manualIntake,entriesPanel,trialDay,reportsPanel,refreshGeneration=0,currentUserId=null,selectedTrialId=null;
+let judgeAmendments,overview,client,busy=false,editor,administration,premiumEditor,sanctionEditor,journal,finance,entrySettings,manualIntake,entriesPanel,trialDay,reportsPanel,refreshGeneration=0,currentUserId=null,selectedTrialId=null;
 function message(value,error=false){$('status').textContent=value;$('status').classList.toggle('error',error);}
 async function action(work){
  if(busy)return;busy=true;document.body.setAttribute('aria-busy','true');
@@ -24,14 +25,14 @@ async function action(work){
  finally{busy=false;document.body.removeAttribute('aria-busy');for(const {button,disabled} of buttons)if(button.isConnected)button.disabled=disabled;}
 }
 function clearTrialContext(){selectedTrialId=null;selectedSection='overview';$('workspace-home-content').hidden=false;for(const button of document.querySelectorAll('#trial-navigation button'))button.removeAttribute('aria-current');$('trial-navigation').hidden=true;$('selected-trial-banner').hidden=true;$('selected-trial-name').textContent='';$('selected-trial-banner').textContent='';}
-function leaveEditors(){if(![editor,premiumEditor,sanctionEditor,journal,finance,entrySettings,manualIntake,entriesPanel,trialDay,reportsPanel].every(panel=>panel?.canLeave?.()!==false))return false;editor.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();return true;}
+function leaveEditors(){if(![editor,premiumEditor,sanctionEditor,journal,finance,entrySettings,manualIntake,entriesPanel,trialDay,reportsPanel,judgeAmendments].every(panel=>panel?.canLeave?.()!==false))return false;editor.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();judgeAmendments?.clear();return true;}
 function openNewTrial(value){if(!leaveEditors())return;clearTrialContext();editor.open(value);}
 function showTrialContext(row){selectedTrialId=row.id;$('workspace-home-content').hidden=true;$('trial-navigation').hidden=false;$('selected-trial-banner').hidden=false;$('selected-trial-name').textContent=row.title;$('selected-trial-banner').textContent=(row.is_practice?'PRACTICE · ':'')+row.title+' · '+row.start_date+' to '+row.end_date+' · '+row.timezone;}
 async function openTrialSection(trialId,section,entryId=null){
  if(!leaveEditors())return;
  const ticket=refreshGeneration;const {data:row,error}=await client.from('caro_trials').select('id,club_id,title,start_date,end_date,timezone,application_state,is_practice,sanction_status,submitted_on,trial_number,approval_evidence,revision,planning').eq('id',trialId).maybeSingle();
  if(ticket!==refreshGeneration)return;if(error||!row){clearTrialContext();throw new Error('Trial access could not be verified. Refresh your workspace.');}
- selectedSection=section;showTrialContext(row);for(const button of document.querySelectorAll('#trial-navigation button')){if(button.id==='nav-'+section)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}if(section==='overview')await overview.open(row);else if(section==='reports')await reportsPanel.open(row);else if(section==='trial-day')await trialDay.open(row);else if(section==='entries')await entriesPanel.open(row);else if(section==='manual-intake')await manualIntake.open(row);else if(section==='entry-settings')await entrySettings.open(row);else if(section==='finance')await finance.open(row,entryId);else if(section==='journal')await journal.open(row);else if(section==='premium')await premiumEditor.open(row);else if(section==='sanction')sanctionEditor.open(row);else editor.open(row);
+ selectedSection=section;showTrialContext(row);for(const button of document.querySelectorAll('#trial-navigation button')){if(button.id==='nav-'+section)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}if(section==='judge-amendments')await judgeAmendments.open(row);else if(section==='overview')await overview.open(row);else if(section==='reports')await reportsPanel.open(row);else if(section==='trial-day')await trialDay.open(row);else if(section==='entries')await entriesPanel.open(row);else if(section==='manual-intake')await manualIntake.open(row);else if(section==='entry-settings')await entrySettings.open(row);else if(section==='finance')await finance.open(row,entryId);else if(section==='journal')await journal.open(row);else if(section==='premium')await premiumEditor.open(row);else if(section==='sanction')sanctionEditor.open(row);else editor.open(row);
 }
 function cards(target,rows,empty,describe){target.replaceChildren();if(!rows.length){target.textContent=empty;return;}for(const row of rows){const article=document.createElement('article'),title=document.createElement('h4'),detail=document.createElement('p');const [name,text]=describe(row);title.textContent=name;detail.textContent=text;article.append(title,detail);target.append(article);}}
 async function refresh(){
@@ -41,11 +42,11 @@ async function refresh(){
   administration?.clear();$('admin-link').hidden=true;
   const {data,error}=await client.auth.getUser();
   if(ticket!==refreshGeneration)return;
-  if(error||!data?.user||data.user.is_anonymous){editor?.clear();premiumEditor?.clear();sanctionEditor?.clear();journal?.clear();finance?.clear();entrySettings?.clear();manualIntake?.clear();entriesPanel?.clear();trialDay?.clear();reportsPanel?.clear();overview?.clear();$('login').hidden=false;message('Sign in to manage your club.');return;}
+  if(error||!data?.user||data.user.is_anonymous){editor?.clear();premiumEditor?.clear();sanctionEditor?.clear();journal?.clear();finance?.clear();entrySettings?.clear();manualIntake?.clear();entriesPanel?.clear();trialDay?.clear();reportsPanel?.clear();overview?.clear();judgeAmendments?.clear();$('login').hidden=false;message('Sign in to manage your club.');return;}
   $('login').hidden=true;
-  if(currentUserId!==data.user.id){editor?.clear();premiumEditor?.clear();sanctionEditor?.clear();journal?.clear();finance?.clear();entrySettings?.clear();manualIntake?.clear();entriesPanel?.clear();trialDay?.clear();reportsPanel?.clear();overview?.clear();clearTrialContext();currentUserId=data.user.id;}
+  if(currentUserId!==data.user.id){editor?.clear();premiumEditor?.clear();sanctionEditor?.clear();journal?.clear();finance?.clear();entrySettings?.clear();manualIntake?.clear();entriesPanel?.clear();trialDay?.clear();reportsPanel?.clear();overview?.clear();judgeAmendments?.clear();clearTrialContext();currentUserId=data.user.id;}
   const workspace=await loadWorkspace(client);if(ticket!==refreshGeneration)return;$('workspace').hidden=false;$('identity').textContent=`Signed in as ${data.user.email}`;
-  if(selectedTrialId){const selected=workspace.trials.find(trial=>trial.id===selectedTrialId);if(selected)showTrialContext(selected);else{editor.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();clearTrialContext();}}
+  if(selectedTrialId){const selected=workspace.trials.find(trial=>trial.id===selectedTrialId);if(selected)showTrialContext(selected);else{editor.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();judgeAmendments?.clear();clearTrialContext();}}
   const isAdmin=await administration.load(workspace.clubs,workspace.trials);$('admin-link').hidden=!isAdmin;
   if(ticket!==refreshGeneration)return;
   $('club-heading').textContent=isAdmin?'All clubs':'Your clubs';$('trial-heading').textContent=isAdmin?'All trials':'Trials you can access';
@@ -62,13 +63,14 @@ $('club-form').addEventListener('submit',event=>{event.preventDefault();action(a
 $('signout').addEventListener('click',()=>action(async()=>{const {error}=await client.auth.signOut();if(error)throw new Error('Sign out failed. Please retry.');editor.clear();await refresh();}));
 $('workspace-home').addEventListener('click',()=>{if(leaveEditors())clearTrialContext();});
 $('refresh').addEventListener('click',()=>action(refresh));
-for(const [id,section] of [['nav-overview','overview'],['nav-application','application'],['nav-premium','premium'],['nav-sanction','sanction'],['nav-journal','journal'],['nav-finance','finance'],['nav-entry-settings','entry-settings'],['nav-manual-intake','manual-intake'],['nav-entries','entries'],['nav-trial-day','trial-day'],['nav-reports','reports']])$(id).addEventListener('click',()=>{if(selectedTrialId)action(()=>openTrialSection(selectedTrialId,section));});
+for(const [id,section] of [['nav-judge-amendments','judge-amendments'],['nav-overview','overview'],['nav-application','application'],['nav-premium','premium'],['nav-sanction','sanction'],['nav-journal','journal'],['nav-finance','finance'],['nav-entry-settings','entry-settings'],['nav-manual-intake','manual-intake'],['nav-entries','entries'],['nav-trial-day','trial-day'],['nav-reports','reports']])$(id).addEventListener('click',()=>{if(selectedTrialId)action(()=>openTrialSection(selectedTrialId,section));});
 try{
   client=createBrowserAuth(__CARO_PUBLIC_CONFIG__,sessionStorage);
   editor=mountTrialEditor({client,container:$('trial-editor'),message,action,onSaved:async value=>{if(value?.id)showTrialContext(value);await refresh();}});
   administration=mountAdministration({client,container:$('administration'),action,message});
   premiumEditor=mountPremiumEditor({client,container:$('premium-panel'),action,message,navigate:section=>action(()=>openTrialSection(selectedTrialId,section))});
   overview=mountOverview({client,container:$('overview-panel'),action,navigate:section=>action(()=>openTrialSection(selectedTrialId,section))});
+  judgeAmendments=mountJudgeAmendments({client,container:$('judge-amendments-panel'),action,message});
   reportsPanel=mountReports({client,container:$('reports-panel'),action,message});
   trialDay=mountTrialDay({client,container:$('trial-day-panel'),action,message});
   entriesPanel=mountEntries({client,container:$('entries-panel'),action,message,onManual:()=>action(()=>openTrialSection(selectedTrialId,'manual-intake')),onFinance:id=>action(()=>openTrialSection(selectedTrialId,'finance',id))});
@@ -78,6 +80,6 @@ try{
   journal=mountActivityJournal({client,container:$('journal-panel'),action,message});
   sanctionEditor=mountSanctionEditor({client,container:$('sanction-panel'),action,message,onSaved:refresh});
   // Auth callbacks only schedule work; no awaited client calls inside the callback.
-  client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){refreshGeneration++;currentUserId=null;clearTrialContext();editor.clear();administration.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();$('admin-link').hidden=true; $('workspace').hidden=true;$('clubs').replaceChildren();$('trials').replaceChildren();$('identity').textContent='';$('login').hidden=false;message('You are signed out.');}});
+  client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){refreshGeneration++;currentUserId=null;clearTrialContext();editor.clear();administration.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();judgeAmendments?.clear();$('admin-link').hidden=true; $('workspace').hidden=true;$('clubs').replaceChildren();$('trials').replaceChildren();$('identity').textContent='';$('login').hidden=false;message('You are signed out.');}});
   await action(async()=>{const code=new URL(location.href).searchParams.get('code');if(code){history.replaceState(null,'',location.pathname);const {error}=await client.auth.exchangeCodeForSession(code);if(error)throw new Error('Email confirmation could not be completed in this tab. Return to sign in, or request a new confirmation.');}await refresh();});
 }catch{message('Staff access is not configured yet. Please contact the administrator.',true);}
