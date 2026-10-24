@@ -7,11 +7,12 @@ export async function requestPasswordReset(auth,email,origin){
  const url=new URL('/',origin);if(!['https:','http:'].includes(url.protocol))throw new Error('Invalid recovery address.');url.searchParams.set('auth','recovery');
  const {error}=await auth.resetPasswordForEmail(address,{redirectTo:url.href});
  if(error)throw new Error('The reset email could not be requested. Wait a minute and try again, or contact the administrator.');
- return 'If an account exists for that address, a password-reset email will be sent. Check your spam folder too. Keep this tab open, then copy the reset link from the email and open it in this same tab.';
+ return 'If an account exists for that address, a password-reset email will be sent. Check your spam folder too. Open the newest reset link in this browser. It can open in a new tab.';
 }
-export async function exchangeEmailCallback(auth,code){
- const {data,error}=await auth.exchangeCodeForSession(code);
- if(error||!data?.session||!data?.user||data.user.is_anonymous)throw new Error('This email link has expired, was already used, or was opened without the requesting tab’s verification. Request a new link and open it in the same browser.');
+export async function exchangeEmailCallback(auth,code,flowId=null){
+ if(flowId!==null&&!/^[A-Za-z0-9_-]{8,64}$/.test(flowId))throw new Error('This email link is invalid. Request a new link.');
+ const {data,error}=await auth.exchangeCodeForSession(code,flowId?{flowId}:undefined);
+ if(error||!data?.session||!data?.user||data.user.is_anonymous)throw new Error('This email link has expired, was already used, or was opened in a different browser. Request a new link, then open the newest email in the browser where you requested it.');
  return data.redirectType==='recovery';
 }
 export async function saveRecoveredPassword(auth,password,confirmation,ready){

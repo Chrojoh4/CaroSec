@@ -80,7 +80,7 @@ $('workspace-home').addEventListener('click',()=>{if(leaveEditors()){clearTrialC
 $('refresh').addEventListener('click',()=>action(refresh));
 for(const item of trialWorkflow){const button=document.createElement('button');button.id='nav-'+item.key;button.className='secondary';button.textContent=item.label;button.addEventListener('click',()=>{if(selectedTrialId)action(()=>openTrialSection(selectedTrialId,item.key));});$('trial-workflow-links').append(button);}
 try{
-  client=createBrowserAuth(__CARO_PUBLIC_CONFIG__,sessionStorage);
+  client=createBrowserAuth(__CARO_PUBLIC_CONFIG__,sessionStorage,{verifierStorage:localStorage});
   editor=mountTrialEditor({client,container:$('trial-editor'),message,action,onSaved:async value=>{if(value?.id)showTrialContext(value);await refresh();}});
   administration=mountAdministration({client,container:$('administration'),action,message});
   premiumEditor=mountPremiumEditor({client,container:$('premium-panel'),action,message,navigate:section=>action(()=>openTrialSection(selectedTrialId,section))});
@@ -97,10 +97,10 @@ try{
   sanctionEditor=mountSanctionEditor({client,container:$('sanction-panel'),action,message,onSaved:refresh});
   // Auth callbacks only schedule work; no awaited client calls inside the callback.
   client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){recoveryReady=false;$('new-password').hidden=true;$('request-reset').hidden=true;$('new-password-form').reset();refreshGeneration++;currentUserId=null;clearTrialContext();editor.clear();administration.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();entryPreview?.clear();judgeAmendments?.clear();$('admin-link').hidden=true; $('workspace').hidden=true;$('clubs').replaceChildren();$('trials').replaceChildren();$('identity').textContent='';$('login').hidden=false;message('You are signed out.');}});
-  await action(async()=>{const callback=new URL(location.href),code=callback.searchParams.get('code'),requestedRecovery=callback.searchParams.get('auth')==='recovery',callbackError=callback.searchParams.has('error')||callback.searchParams.has('error_code')||new URLSearchParams(callback.hash.slice(1)).has('error');
-   if(code||requestedRecovery||callbackError){for(const key of ['code','auth','error','error_code','error_description'])callback.searchParams.delete(key);callback.hash='';history.replaceState(null,'',callback.pathname+callback.search);recoveryScreen('login');
+  await action(async()=>{const callback=new URL(location.href),code=callback.searchParams.get('code'),flowId=callback.searchParams.get('sb_flow_id'),requestedRecovery=callback.searchParams.get('auth')==='recovery',callbackError=callback.searchParams.has('error')||callback.searchParams.has('error_code')||new URLSearchParams(callback.hash.slice(1)).has('error');
+   if(code||requestedRecovery||callbackError){for(const key of ['code','sb_flow_id','auth','error','error_code','error_description'])callback.searchParams.delete(key);callback.hash='';history.replaceState(null,'',callback.pathname+callback.search);recoveryScreen('login');
     if(callbackError||!code)throw new Error('This email link is invalid or expired. Use Forgot password to request a new link.');
-    recoveryReady=await exchangeEmailCallback(client.auth,code);
+    recoveryReady=await exchangeEmailCallback(client.auth,code,flowId);
     if(requestedRecovery&&!recoveryReady)throw new Error('This is not a password-reset link. Use Forgot password to request a new link.');
     if(recoveryReady){recoveryScreen('new-password');message('Your reset link was verified. Choose a new password.');return;}
    }await refresh();});
