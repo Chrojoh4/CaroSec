@@ -14,7 +14,7 @@ test('System Administrator crosses clubs without granting ordinary staff access 
  grant usage on schema auth to anon,authenticated,service_role;grant execute on function auth.uid(),auth.jwt() to anon,authenticated,service_role;
  insert into auth.users values('${admin}','admin@example.com'),('${owner}','owner@example.com');`);
  for(const file of ['202610190001_caro_foundation.sql','20261020153706_hosted_trial_drafts.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
- const bundle=await databaseUpdate();assert.equal(bundle.files.length,20);await db.exec(bundle.sql);
+ const bundle=await databaseUpdate();assert.equal(bundle.files.length,21);await db.exec(bundle.sql);
  const as=async(user,claims='{}')=>{await db.exec('reset role;set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[user,claims]);};
  const one=async(sql,args=[])=>(await db.query(sql,args)).rows[0];
  await as(owner);const club=(await one("select public.caro_create_club('Other club','America/Edmonton') id")).id;
@@ -464,6 +464,15 @@ test('System Administrator crosses clubs without granting ordinary staff access 
   await assert.rejects(()=>db.query('delete from public.caro_users where user_id=$1',[helper]),/do not delete/);
   await assert.rejects(()=>db.query("update public.caro_memberships set role='scorer' where club_id=$1 and user_id=$2",[club,owner]),/active club owner/);
   await db.query("update auth.users set email='helper-new@example.com' where id=$1",[helper]);assert.equal((await one('select email from public.caro_users where user_id=$1',[helper])).email,'helper-new@example.com');
+ });
+
+ await t.test('premium answers follow the saving user and club without exposing other staff or copying trial dates',async()=>{
+  await as(owner);const current=(await one('select revision from public.caro_premium_drafts where trial_id=$1',[id])).revision;await db.query("select public.caro_save_premium_draft($1,$2,$3)",[id,current,{intro:'Latest club welcome',opens:'2027-03-01',payment:'Pay the host',fees:[{label:'Regular',unit:'per dog',cents:2400}]}]);
+  const defaults=(await db.query('select content,source_trial_id from public.caro_premium_user_defaults where club_id=$1 and not is_practice',[club])).rows;
+  assert.equal(defaults.length,1);assert.equal(defaults[0].content.payment,'Pay the host');assert.equal(defaults[0].source_trial_id,id);assert.equal(Object.hasOwn(defaults[0].content,'opens'),false);
+  await as(admin);assert.equal((await db.query('select * from public.caro_premium_user_defaults where club_id=$1',[club])).rows.length,0);
+  await assert.rejects(()=>db.query("update public.caro_premium_user_defaults set content='{}'"),/permission denied/);
+  await as(owner,'{"is_anonymous":true}');assert.equal((await db.query('select * from public.caro_premium_user_defaults')).rows.length,0);
  });
 
 });

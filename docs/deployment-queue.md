@@ -93,3 +93,6 @@ No SQL migration. Follow docs/password-recovery.md for the Supabase redirect all
 
 ## Concurrent account signup (2026-10-24)
 No SQL. Apply the narrow flow-ID redirect patterns and sender checks in docs/group-account-signup.md before testing club attendees. Signup and recovery share per-flow verifier handling; no roles are automatically assigned.
+
+## Premium remembered answers (2026-10-24)
+Apply 20261024214254_premium_user_defaults.sql once (user-ready file: output/deployment/premium-defaults-20261024/apply-premium-defaults.sql). RLS included. Existing drafts and trials are unchanged; own-user reusable answers are seeded and updated on future saves. See docs/premium-defaults.md.
