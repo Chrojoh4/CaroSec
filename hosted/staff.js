@@ -1,3 +1,4 @@
+import {requestPasswordReset,exchangeEmailCallback,saveRecoveredPassword} from './password-recovery.js';
 import {trialWorkflow} from './trial-workflow.js';
 import {mountEntryPreview} from './entry-preview.js';
 import {timezoneLabel} from '../src/domain/date-time.js';
@@ -18,7 +19,7 @@ import {mountTrialDay} from './trial-day.js';
 import {mountReports} from './reports.js';
 import sampleTrial from '../fixtures/rallypaws-practice-trial.json';
 const $=id=>document.getElementById(id);
-let selectedSection='overview',proofLinkHandled=false;
+let selectedSection='overview',proofLinkHandled=false,recoveryReady=false;
 let entryPreview,judgeAmendments,overview,client,busy=false,editor,administration,premiumEditor,sanctionEditor,journal,finance,entrySettings,manualIntake,entriesPanel,trialDay,reportsPanel,refreshGeneration=0,currentUserId=null,selectedTrialId=null;
 function message(value,error=false){$('status').textContent=value;$('status').classList.toggle('error',error);}
 async function action(work){
@@ -39,6 +40,7 @@ async function openTrialSection(trialId,section,entryId=null){
 }
 function cards(target,rows,empty,describe){target.replaceChildren();if(!rows.length){target.textContent=empty;return;}for(const row of rows){const article=document.createElement('article'),title=document.createElement('h4'),detail=document.createElement('p');const [name,text]=describe(row);title.textContent=name;detail.textContent=text;article.append(title,detail);target.append(article);}}
 async function refresh(){
+  if(recoveryReady){$('login').hidden=true;$('workspace').hidden=true;$('request-reset').hidden=true;$('new-password').hidden=false;return;}
   const ticket=++refreshGeneration;
   // Never retain another user's private rows after logout/session expiry.
   $('clubs').replaceChildren();$('trials').replaceChildren();$('identity').textContent='';$('workspace').hidden=true;
@@ -64,6 +66,12 @@ async function refresh(){
   }}
   message(isAdmin?'Administrator workspace loaded. All clubs and trials are accessible.':'Workspace loaded securely.');
 }
+function recoveryScreen(name){for(const id of ['login','workspace','request-reset','new-password'])$(id).hidden=id!==name;}
+$('forgot-password').addEventListener('click',()=>{$('reset-email').value=$('email').value.trim();$('password').value='';recoveryScreen('request-reset');message('Request a password-reset email.');});
+$('reset-back').addEventListener('click',()=>{recoveryScreen('login');message('Sign in to manage your club.');});
+$('request-reset-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>message(await requestPasswordReset(client.auth,$('reset-email').value,location.origin)));});
+$('new-password-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>{try{const result=await saveRecoveredPassword(client.auth,$('new-password-value').value,$('confirm-password').value,recoveryReady);recoveryReady=false;recoveryScreen('login');message(result);}finally{$('new-password-value').value='';$('confirm-password').value='';}});});
+$('cancel-reset').addEventListener('click',()=>action(async()=>{recoveryReady=false;$('new-password-form').reset();await client.auth.signOut({scope:'local'});recoveryScreen('login');message('Password reset cancelled. Your password was not changed.');}));
 $('auth-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('password').value='';if(error)throw new Error('Sign-in failed. Check your email, password and email confirmation.');await refresh();});});
 $('signup').addEventListener('click',()=>{if(!$('auth-form').reportValidity())return;action(async()=>{const {error}=await client.auth.signUp({email:$('email').value.trim(),password:$('password').value,options:{emailRedirectTo:location.origin+'/'}});$('password').value='';if(error)throw new Error('Account creation could not be completed. Try again later or contact the trial administrator.');message('Check your email for confirmation, then return here to sign in.');});});
 $('club-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>{await createClub(client,$('club-name').value,$('timezone').value);$('club-name').value='';await refresh();});});
@@ -88,6 +96,12 @@ try{
   journal=mountActivityJournal({client,container:$('journal-panel'),action,message});
   sanctionEditor=mountSanctionEditor({client,container:$('sanction-panel'),action,message,onSaved:refresh});
   // Auth callbacks only schedule work; no awaited client calls inside the callback.
-  client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){refreshGeneration++;currentUserId=null;clearTrialContext();editor.clear();administration.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();entryPreview?.clear();judgeAmendments?.clear();$('admin-link').hidden=true; $('workspace').hidden=true;$('clubs').replaceChildren();$('trials').replaceChildren();$('identity').textContent='';$('login').hidden=false;message('You are signed out.');}});
-  await action(async()=>{const code=new URL(location.href).searchParams.get('code');if(code){history.replaceState(null,'',location.pathname);const {error}=await client.auth.exchangeCodeForSession(code);if(error)throw new Error('Email confirmation could not be completed in this tab. Return to sign in, or request a new confirmation.');}await refresh();});
+  client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){recoveryReady=false;$('new-password').hidden=true;$('request-reset').hidden=true;$('new-password-form').reset();refreshGeneration++;currentUserId=null;clearTrialContext();editor.clear();administration.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();entryPreview?.clear();judgeAmendments?.clear();$('admin-link').hidden=true; $('workspace').hidden=true;$('clubs').replaceChildren();$('trials').replaceChildren();$('identity').textContent='';$('login').hidden=false;message('You are signed out.');}});
+  await action(async()=>{const callback=new URL(location.href),code=callback.searchParams.get('code'),requestedRecovery=callback.searchParams.get('auth')==='recovery',callbackError=callback.searchParams.has('error')||callback.searchParams.has('error_code')||new URLSearchParams(callback.hash.slice(1)).has('error');
+   if(code||requestedRecovery||callbackError){for(const key of ['code','auth','error','error_code','error_description'])callback.searchParams.delete(key);callback.hash='';history.replaceState(null,'',callback.pathname+callback.search);recoveryScreen('login');
+    if(callbackError||!code)throw new Error('This email link is invalid or expired. Use Forgot password to request a new link.');
+    recoveryReady=await exchangeEmailCallback(client.auth,code);
+    if(requestedRecovery&&!recoveryReady)throw new Error('This is not a password-reset link. Use Forgot password to request a new link.');
+    if(recoveryReady){recoveryScreen('new-password');message('Your reset link was verified. Choose a new password.');return;}
+   }await refresh();});
 }catch{message('Staff access is not configured yet. Please contact the administrator.',true);}

@@ -87,3 +87,6 @@ Apply `20261024204328_administrator_user_directory.sql` in CARO. This adds a rea
 
 ## Editable users (2026-10-24)
 Apply output/deployment/editable-users-20261024/apply-editable-users.sql once in CARO. It includes the read-only directory RPC (CREATE OR REPLACE) if not installed yet, then the new editable-users migration. public.caro_users.system_role accepts staff/administrator; club owner/secretary/scorer remain public.caro_memberships.role. The mirror synchronizes auth email and legacy protected administrator grants both ways. Authenticated callers cannot write the table directly; administrator-only RPC uses expected system role and audit reason. Table Editor database administrators may edit system_role. Last administrator and last club owner protections apply to both routes. Existing access is preserved; no accounts are promoted.
+
+## Password recovery (2026-10-24)
+No SQL migration. Follow docs/password-recovery.md for the Supabase redirect allowlist, email sender and separate security-notification settings. Production email delivery has not been verified.
