@@ -37,3 +37,5 @@
 .hosted-intake .offered-options strong{display:inline}.hosted-intake .offered-options{background:#edf3ec;padding:.35rem .5rem}
 .hosted-intake .event-price{margin-left:auto;max-width:19rem}.readonly-entry-preview .event-choice-details{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.25rem .8rem;align-items:start}.readonly-entry-preview .offered-options{grid-column:1/-1}
 @media(max-width:650px){.readonly-entry-preview .event-choice-details{grid-template-columns:1fr}.hosted-intake .event-price{margin-left:0;max-width:none}}
+
+.draft-offerings-form{max-width:none}.draft-offerings-form fieldset{padding:1rem;border:1px solid #9aafa2;border-radius:8px}.draft-offerings-form .stream-choice{display:inline-flex;align-items:center;gap:.5rem;margin:.3rem 1rem .7rem 0}.draft-offerings-form input[type=checkbox]{width:25px;height:25px;min-height:25px}.draft-offerings-form legend{font-weight:700}

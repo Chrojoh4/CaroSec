@@ -4,7 +4,7 @@ October 20 local development: `npm run dev:practice` opens the isolated fictiona
 
 `npm run rehearse:trial` runs the complete fictional trial-day and reconciliation scenario; see [rehearsal instructions](docs/trial-rehearsal.md).
 
-See [beta readiness](docs/beta-readiness.md) for the remaining hosted acceptance gates and [backup recovery](docs/backup-recovery.md) for recovery to a separate local file. Current local database and domain suite: 128 passing tests. No live deployment is implied by the source build.
+See [beta readiness](docs/beta-readiness.md) for the remaining hosted acceptance gates and [backup recovery](docs/backup-recovery.md) for recovery to a separate local file. Current local database and domain suite: 130 passing tests. No live deployment is implied by the source build.
 
 Prepared hosted additions now include a trial overview, private practice mode, approved public premium/paper-form publication, filtered activity journal and server-only online-entry/receipt source. Online publication stays gated until live acceptance. See [public entry architecture](docs/hosted-public-entry.md).
 
@@ -95,3 +95,5 @@ The user applied the foundation SQL and confirmed RLS on all 12 tables; see [hos
 Official application transfer helper: the trial editor exports reviewed details for CARO’s real online form. See hosted/caro-helper/README.md. First-page fields are mapped; automatic event/judge selection and complete browser verification remain pending.
 
 Judge replacement amendments and deployment requirements: [judge replacements](docs/judge-replacements.md).
+
+Standard new-club setup sequence: [secretary workflow](docs/new-club-workflow.md).

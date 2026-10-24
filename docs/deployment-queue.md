@@ -78,3 +78,6 @@ Prepared additional migration: `20261023213043_judge_replacements.sql`. Apply on
 
 
 Private premium testing links now open the read-only online form and POST to the authenticated entry-proof PDF endpoint. The PDF uses RLS-authorized saved trial/premium information, is interactive and labelled PRIVATE PROOF, and cannot publish or receive an entry. No new migration or server secret is needed. Draft per-event prices remain explicitly unconfigured until reviewed. Verify the deployed download under owner, assigned secretary and denied foreign accounts before beta.
+
+
+October 24: apply only the new `20261024202758_draft_offerings.sql` after earlier migrations, then deploy the matching workflow update. It adds a protected draft-offerings table and version-checked RPC, updates draft streams through the existing writer, and opens no intake. Existing finalized entry settings remain authoritative. Draft assignments carry source/fee snapshots to invalidate changes and prefill official setup after finalization; the host still confirms the final setup and agreement. Connected Supabase still lacks the CARO project, so no remote migration was applied.

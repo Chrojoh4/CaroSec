@@ -78,3 +78,8 @@ The independent Chrome/Edge helper transfers only matching visible controls afte
 ## Judge replacement workflow — October 23, 2026
 
 The saved 2025 Trial Officials Guide, PDF page 8, requires CARO to be informed of trial changes and distinguishes attending replacements from results attribution when original approved course maps are used. The current indexed [Handbook index](https://canadianrallyo.ca/handbook-signs/) still lists this guide as published January 2026. Direct retrieval failed on this date; no newer PDF revision was verified. See judge-replacements.md for implementation boundaries, including the staff-reviewed new-course path and the prohibition on amendments after scoring begins. Judge eligibility and course approval remain externally verified, not calculated by the application.
+
+
+## Draft setup and reference-program workflow — October 24, 2026
+
+Read C-WAGS trialWorkflow.ts/create-trial and SDDA sidebar/create-trial source as interaction references only. Both prepare offerings/prices before entry documents. CARO draft offerings now save explicit per-round mappings before local finalization. The saved Rally Handbook 2025 §1.4.2 and December 14, 2025 amendment define B/C, with C from Advanced upward; new draft validation rejects A and C for Novice/Intermediate. This governs offered UI choices only, not dog eligibility, qualification or title verification. Working levels and exercise fee basis remain separate. See new-club-workflow.md.

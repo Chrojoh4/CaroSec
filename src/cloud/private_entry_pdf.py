@@ -27,7 +27,9 @@ def authorized_source(token,trial_id):
   try:return {'configuration':fetch('/rest/v1/rpc/caro_manual_entry_configuration',{'p_trial':trial_id})}
   except PdfRequestError:pass
  drafts=fetch('/rest/v1/caro_premium_drafts?trial_id=eq.'+trial_id+'&select=content')
- return {'trial':trial,'content':drafts[0]['content'] if drafts else {}}
+ try:offerings=fetch('/rest/v1/caro_draft_offerings?trial_id=eq.'+trial_id+'&select=rows,fees_snapshot')
+ except PdfRequestError:offerings=[]
+ return {'trial':trial,'content':drafts[0]['content'] if drafts else {},'offerings':offerings[0] if offerings else None}
 
 def generate_private_entry_pdf(authorization,body,source=authorized_source,temporary_root=None):
  token=caller_token(authorization,'reviewing entry forms')
@@ -48,6 +50,13 @@ def generate_private_entry_pdf(authorization,body,source=authorized_source,tempo
   data.update({key:content.get(key,'') for key in ['opens','closes','payment','confirmations','waiver','accommodations','moveups','refunds']});data['savedFeeSummary']='; '.join(str(fee.get('label',''))+' $'+format(fee.get('cents',0)/100,'.2f')+' '+str(fee.get('unit','')) for fee in content.get('fees',[]));data['events']=[]
   for i,event in enumerate(planning.get('events') or []):
    data['events'].append({'id':event['id'],'round':i+1,'dayId':event.get('dayId',''),'level':event.get('level',''),'format':event.get('format',''),'judge':event.get('judge',''),'levels':re.findall(r'[^ ,;]+',event.get('stream','')) or ['Not configured'],'exercises':[{'id':'preview-'+str(n),'name':name.strip()} for n,name in enumerate(re.split(r'[;,\n]+',event.get('exercises',''))) if name.strip()],'basis':'not configured','fee':{'cents':0},'feoFee':None,'previewMissingFee':True})
+ if 'trial' in value and value.get('offerings'):
+  offering=value['offerings'];content=value.get('content') or {}
+  if offering.get('fees_snapshot')==content.get('fees'):
+   for event in data['events']:
+    original=next((e for e in value['trial']['planning']['events'] if e['id']==event['id']),None);row=next((r for r in offering.get('rows',[]) if r['key']==event['id']),None)
+    source=[original.get(k,'') for k in ['id','dayId','level','format','stream','judge','exercises']] if original else None
+    if row and row.get('source')==source:event.update({k:row[k] for k in ['levels','fee','feoFee','basis','capacity']});event['previewMissingFee']=False
  if not isinstance(data.get('events'),list) or not 1<=len(data['events'])<=100:raise PdfRequestError(422,'Save between 1 and 100 rounds before generating this proof.')
  data['privateProof']=True;data['trialNumber']='PRIVATE DRAFT - NOT FOR ENTRY';data['fictional']=False
  with tempfile.TemporaryDirectory(prefix='caro-entry-proof-',dir=temporary_root) as folder:

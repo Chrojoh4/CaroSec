@@ -13,3 +13,10 @@ test('read-only form expands conditional sections, disables every control and ne
  let submitted=false,lookedUp=false;const view=mountEntryForm(root,draftEntryPreview(trial),{readOnly:true,onSubmitted:()=>{submitted=true;},lookupResults:()=>{lookedUp=true;}});
  assert.ok(root.innerHTML.includes('Your teammate'));assert.ok(root.innerHTML.includes('Partner dog · Team / Brace'));assert.ok(root.innerHTML.includes('Drop on Recall'));assert.ok(root.innerHTML.includes('Fee assignment pending'));assert.ok(root.innerHTML.includes('Offered streams'));assert.ok(root.innerHTML.includes('B / C'));assert.equal(controls.every(c=>c.disabled),true);assert.equal(submit.removed,true);assert.deepEqual(listeners.map(l=>l.type),['submit']);let prevented=false;await listeners[0].callback({preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(submitted,false);assert.equal(lookedUp,false);assert.equal(view.getModel().agree,false);assert.deepEqual(view.getModel().selections,[]);
 });
+
+test('saved draft assignments populate prices and streams but changed source or fees invalidate them',()=>{
+ const content={fees:[{label:'Competitive',cents:2400,unit:'per dog'}]},event=trial.planning.events[0],row={key:event.id,source:['id','dayId','level','format','stream','judge','exercises'].map(k=>event[k]||''),levels:['B','C'],fee:content.fees[0],feoFee:{cents:1600},basis:'dog',capacity:40},setup={rows:[row],fees_snapshot:content.fees};
+ const preview=draftEntryPreview(trial,content,setup);assert.equal(preview.events[0].fee.cents,2400);assert.equal(preview.events[0].previewMissingFee,false);assert.equal(preview.events[0].feoFee.cents,1600);
+ const changed=structuredClone(trial);changed.planning.events[0].judge='Changed';assert.equal(draftEntryPreview(changed,content,setup).events[0].previewMissingFee,true);
+ assert.equal(draftEntryPreview(trial,{fees:[{...content.fees[0],cents:2500}]},setup).events[0].previewMissingFee,true);
+});
