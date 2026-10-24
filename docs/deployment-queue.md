@@ -84,3 +84,6 @@ October 24: apply only the new `20261024202758_draft_offerings.sql` after earlie
 
 ## Users and access directory (2026-10-24)
 Apply `20261024204328_administrator_user_directory.sql` in CARO. This adds a read-only administrator RPC combining accounts, system administrator status, club membership and trial assignments. No data or privileges are changed. The UI keeps the existing membership list and controls available until the RPC is installed. No separate assistant role is invented; current scorer limitations are explicit.
+
+## Editable users (2026-10-24)
+Apply output/deployment/editable-users-20261024/apply-editable-users.sql once in CARO. It includes the read-only directory RPC (CREATE OR REPLACE) if not installed yet, then the new editable-users migration. public.caro_users.system_role accepts staff/administrator; club owner/secretary/scorer remain public.caro_memberships.role. The mirror synchronizes auth email and legacy protected administrator grants both ways. Authenticated callers cannot write the table directly; administrator-only RPC uses expected system role and audit reason. Table Editor database administrators may edit system_role. Last administrator and last club owner protections apply to both routes. Existing access is preserved; no accounts are promoted.

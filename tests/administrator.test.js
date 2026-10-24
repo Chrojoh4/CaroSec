@@ -14,7 +14,7 @@ test('System Administrator crosses clubs without granting ordinary staff access 
  grant usage on schema auth to anon,authenticated,service_role;grant execute on function auth.uid(),auth.jwt() to anon,authenticated,service_role;
  insert into auth.users values('${admin}','admin@example.com'),('${owner}','owner@example.com');`);
  for(const file of ['202610190001_caro_foundation.sql','20261020153706_hosted_trial_drafts.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
- const bundle=await databaseUpdate();assert.equal(bundle.files.length,19);await db.exec(bundle.sql);
+ const bundle=await databaseUpdate();assert.equal(bundle.files.length,20);await db.exec(bundle.sql);
  const as=async(user,claims='{}')=>{await db.exec('reset role;set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[user,claims]);};
  const one=async(sql,args=[])=>(await db.query(sql,args)).rows[0];
  await as(owner);const club=(await one("select public.caro_create_club('Other club','America/Edmonton') id")).id;
@@ -440,6 +440,30 @@ test('System Administrator crosses clubs without granting ordinary staff access 
   await as(admin);await assert.rejects(()=>db.query(sql,[trial,result.trialRevision,0,0,rows]),/Trial access/);assert.equal((await one('select count(*)::int n from public.caro_draft_offerings')).n,0);
   await as(owner,'{"is_anonymous":true}');assert.equal((await one('select count(*)::int n from public.caro_draft_offerings')).n,0);await assert.rejects(()=>db.query(sql,[trial,result.trialRevision,0,0,rows]),/Trial access/);
   await as(owner);await assert.rejects(()=>db.query('update public.caro_draft_offerings set revision=99 where trial_id=$1',[trial]),/permission denied/);
+ });
+
+ await t.test('editable users synchronize Table Editor and browser access with last-admin and authorization protection',async()=>{
+  const helper='00000000-0000-0000-0000-000000000099';
+  await db.exec('reset role');await db.query("insert into auth.users values($1,'helper@example.com')",[helper]);
+  assert.equal((await one('select system_role from public.caro_users where user_id=$1',[helper])).system_role,'staff');
+  await db.query("update public.caro_users set system_role='administrator',access_reason='Direct Table Editor promotion' where user_id=$1",[helper]);
+  await as(helper);assert.equal((await one('select public.caro_is_administrator() allowed')).allowed,true);
+  await db.query("select public.caro_administrator_system_access($1,'administrator','staff','Remove helper administrator')",[helper]);
+  assert.equal((await one('select public.caro_is_administrator() allowed')).allowed,false);
+  await assert.rejects(()=>db.query("select public.caro_administrator_system_access($1,'staff','administrator','Attempt self promotion')",[helper]),/Administrator access required/);
+  assert.equal((await db.query('select * from public.caro_users')).rows.length,0);
+  await assert.rejects(()=>db.query("update public.caro_users set system_role='administrator' where user_id=$1",[helper]),/permission denied/);
+  await as(owner);await assert.rejects(()=>db.query("select public.caro_administrator_system_access($1,'administrator','administrator','Stale browser update')",[helper]),/Access changed/);
+  await assert.rejects(()=>db.query("select public.caro_administrator_system_access($1,'administrator','staff','Remove last administrator')",[owner]),/last active Administrator/);
+  await as(owner,'{"is_anonymous":true}');await assert.rejects(()=>db.query("select public.caro_administrator_system_access($1,'staff','administrator','Anonymous promotion')",[helper]),/Administrator access required/);
+  await db.exec('reset role');await db.query("update caro_private.system_administrators set active=true,reason='Legacy SQL promotion preserved' where user_id=$1",[helper]);
+  assert.equal((await one('select system_role from public.caro_users where user_id=$1',[helper])).system_role,'administrator');
+  await db.query("update caro_private.system_administrators set active=false,reason='Legacy SQL revocation preserved' where user_id=$1",[helper]);
+  assert.equal((await one('select system_role from public.caro_users where user_id=$1',[helper])).system_role,'staff');
+  await assert.rejects(()=>db.query("update public.caro_users set email='wrong@example.com' where user_id=$1",[helper]),/Authentication/);
+  await assert.rejects(()=>db.query('delete from public.caro_users where user_id=$1',[helper]),/do not delete/);
+  await assert.rejects(()=>db.query("update public.caro_memberships set role='scorer' where club_id=$1 and user_id=$2",[club,owner]),/active club owner/);
+  await db.query("update auth.users set email='helper-new@example.com' where id=$1",[helper]);assert.equal((await one('select email from public.caro_users where user_id=$1',[helper])).email,'helper-new@example.com');
  });
 
 });

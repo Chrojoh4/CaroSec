@@ -41,3 +41,5 @@
 .draft-offerings-form{max-width:none}.draft-offerings-form fieldset{padding:1rem;border:1px solid #9aafa2;border-radius:8px}.draft-offerings-form .stream-choice{display:inline-flex;align-items:center;gap:.5rem;margin:.3rem 1rem .7rem 0}.draft-offerings-form input[type=checkbox]{width:25px;height:25px;min-height:25px}.draft-offerings-form legend{font-weight:700}
 
 .users-table-wrap{overflow-x:auto}.users-table{width:100%;border-collapse:collapse;font-size:1rem}.users-table caption{text-align:left;font-weight:700;padding:1rem 0}.users-table th,.users-table td{text-align:left;vertical-align:top;border:1px solid #b8c9be;padding:.75rem;min-width:12rem;overflow-wrap:anywhere}.users-table th{background:#e3eee7}.users-table td p{margin:.25rem 0 .75rem}.users-table td:first-child p{font-size:1rem}
+
+.access-cell-form{min-width:16rem;padding:.5rem 0 1rem;border-bottom:1px solid #b8c9be}.access-cell-form button{width:100%}
