@@ -43,3 +43,5 @@
 .users-table-wrap{overflow-x:auto}.users-table{width:100%;border-collapse:collapse;font-size:1rem}.users-table caption{text-align:left;font-weight:700;padding:1rem 0}.users-table th,.users-table td{text-align:left;vertical-align:top;border:1px solid #b8c9be;padding:.75rem;min-width:12rem;overflow-wrap:anywhere}.users-table th{background:#e3eee7}.users-table td p{margin:.25rem 0 .75rem}.users-table td:first-child p{font-size:1rem}
 
 .access-cell-form{min-width:16rem;padding:.5rem 0 1rem;border-bottom:1px solid #b8c9be}.access-cell-form button{width:100%}
+
+#admin-link{padding:.65rem;border:1px solid #b8c9be;border-radius:10px;background:#e3eee7}#admin-link summary{cursor:pointer;font-weight:700;min-height:48px;padding:.5rem 0}#admin-link button{width:100%;text-align:left}.trial-fees-form{max-width:100%}.trial-fees-form fieldset{border:1px solid #b8c9be;border-radius:10px;padding:1rem;margin:1rem 0}.trial-fees-form label{display:block}

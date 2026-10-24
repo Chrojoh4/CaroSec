@@ -1,3 +1,4 @@
+import {mountTrialFees} from './trial-fees.js';
 import {officialApplicationPacket} from '../src/domain/official-application.js';
 import {validCalendarDate,timezoneChoicesFor,timezoneLabel} from '../src/domain/date-time.js';
 import {escapeHtml as escape} from '../src/domain/premium.js';
@@ -5,7 +6,7 @@ const reviews=[['professionalConfirmed','I reviewed the host professional member
 const fields=[['host','Host club'],['organizer','Organizer'],['organizerEmail','Organizer email'],['memberReference','Professional membership reference'],['secretary','Trial secretary'],['email','Secretary email'],['chair','Trial chair'],['chairEmail','Chair email'],['venue','Venue'],['address','Venue address'],['surface','Ring surface'],['ringWidth','Ring width (feet)'],['ringLength','Ring length (feet)'],['nearbyNotes','Nearby trials / permission notes']];
 const levels=['Novice','Intermediate','Advanced','Excellent','Versatility','Versatility Excellent','Working'];
 export function mountTrialEditor({client,container,message,action,onSaved}){
- let row=null,dirty=false,generation=0;
+ let row=null,dirty=false,generation=0,feeEditor=null;
  const el=(tag,text)=>{const node=document.createElement(tag);if(text)node.textContent=text;return node;};
  function input(parent,key,label,value='',type='text'){const wrap=el('label',label),node=el('input');node.name=key;node.type=type;node.value=value;node.maxLength=5000;wrap.append(node);parent.append(wrap);return node;}
  function select(parent,key,label,values,value){const wrap=el('label',label),node=el('select');node.name=key;for(const v of values){const o=el('option',v);o.value=v;node.append(o);}node.value=value;wrap.append(node);parent.append(wrap);return node;}
@@ -19,8 +20,8 @@ export function mountTrialEditor({client,container,message,action,onSaved}){
   for(const [label,direction] of [['Move event up',-1],['Move event down',1]]){const move=el('button',label);move.type='button';move.className='secondary';move.addEventListener('click',()=>{if(row.application_state!=='draft')return;const other=direction<0?block.previousElementSibling:block.nextElementSibling;if(other){if(direction<0)block.parentNode.insertBefore(block,other);else block.parentNode.insertBefore(other,block);dirty=true;}});block.append(move);}
   form.querySelector('#event-list').append(block);
  }
- function close(){if(dirty&&!confirm('Leave this draft without saving your latest changes?'))return;generation++;container.hidden=true;container.replaceChildren();row=null;dirty=false;}
- function open(value){if(dirty&&!confirm('Leave this draft without saving your latest changes?'))return;const ticket=++generation;row=structuredClone(value);dirty=false;container.hidden=false;container.replaceChildren();container.append(el('h2',row.revision===-1?'Create a trial':'Trial details and rounds'),el('p','Save your work at any stage. This prepares a draft; it does not submit an application to CARO or open entries.'));
+ function close(){if(feeEditor?.canLeave()===false)return;if(dirty&&!confirm('Leave this draft without saving your latest changes?'))return;generation++;feeEditor?.clear();container.hidden=true;container.replaceChildren();row=null;dirty=false;}
+ function open(value){if(feeEditor?.canLeave()===false)return;if(dirty&&!confirm('Leave this draft without saving your latest changes?'))return;feeEditor?.clear();const ticket=++generation;row=structuredClone(value);dirty=false;container.hidden=false;container.replaceChildren();container.append(el('h2',row.revision===-1?'Create a trial':'Trial details and rounds'),el('p','Save your work at any stage. This prepares a draft; it does not submit an application to CARO or open entries.'));
   const form=el('form');form.className='trial-form';const practiceLabel=el('label','Practice only — cannot be published or changed to a real trial'),practice=el('input');practice.type='checkbox';practice.name='is_practice';practice.checked=row.is_practice===true;practice.disabled=row.is_practice===true;practiceLabel.prepend(practice);form.append(practiceLabel);input(form,'title','Trial name',row.title);input(form,'start_date','First day',row.start_date,'date');input(form,'end_date','Last day',row.end_date,'date');const zoneLabel=el('label','Trial time zone'),zone=el('select');zone.name='timezone';for(const [value,label] of timezoneChoicesFor(row.timezone)){const option=el('option',label);option.value=value;zone.append(option);}zone.value=row.timezone;zoneLabel.append(zone);form.append(zoneLabel);for(const [key,label] of fields)input(form,key,label,row.planning?.[key]||'');
   const events=el('div');events.id='event-list';form.append(el('h3','Events and judges'),el('p','Draft event order becomes the official round order when finalized. Move events before finalizing.'),events);const add=el('button','Add event');add.type='button';add.className='secondary';add.addEventListener('click',()=>{if(row.application_state!=='draft')return;if(events.children.length>=150){message('This release supports up to 150 events.',true);return;}eventBlock(form);dirty=true;});form.append(add);
   form.append(el('h3','Application review'));
@@ -28,7 +29,7 @@ export function mountTrialEditor({client,container,message,action,onSaved}){
   const controls=el('div');controls.className='actions';const save=el('button','Save trial draft');save.type='submit';const cancel=el('button','Back to workspace');cancel.type='button';cancel.className='secondary';cancel.addEventListener('click',close);
   const finalize=el('button','Lock trial details and rounds');finalize.type='button';finalize.className='secondary';finalize.addEventListener('click',()=>action(async()=>{
    if(row.application_state!=='draft')throw new Error('Application is already finalized.');
-   if(dirty||row.revision<0)throw new Error('Save your draft changes before finalizing.');
+   if(dirty||feeEditor?.isDirty()||row.revision<0)throw new Error('Save your draft and fee changes before finalizing.');
    if(!confirm('Finalize this application and lock its official event order, dates and judges? This does not submit it to CARO or record CARO approval.'))return;
    const {data,error}=await client.rpc('caro_finalize_trial_draft',{p_id:row.id,p_club:row.club_id,p_revision:row.revision});if(error)throw new Error(error.code==='PGRST202'?'Application finalization needs the new database setup SQL.':error.message);
    if(ticket!==generation)return;
@@ -45,7 +46,7 @@ export function mountTrialEditor({client,container,message,action,onSaved}){
   const official=el('a','Open official CARO application');official.href='https://app.canadianrallyo.ca/trialapplication';official.target='_blank';official.rel='noopener';
   const helper=el('a','Download browser transfer helper (Chrome / Edge)');helper.href='/caro-application-helper.zip';helper.download='caro-application-helper.zip';
   const transferNote=el('p','The helper fills matching visible contact and venue fields on CARO. Member lookup, judge selections, event rows and final submission remain on CARO’s site. Later-page mappings still need browser verification.');
-  controls.append(save,finalize,summary,transfer,official,helper,cancel);container.append(transferNote);form.append(controls);container.append(form);
+  controls.append(save,finalize,summary,transfer,official,helper,cancel);container.append(transferNote);form.append(controls);container.append(form);const feeContainer=el('section');feeContainer.id='trial-fee-panel';container.append(feeContainer);const feeJump=el('a','Jump to entry fees');feeJump.href='#trial-fee-panel';container.insertBefore(feeJump,form);feeEditor=mountTrialFees({client,container:feeContainer,action,message});feeEditor.open(row).catch(error=>{if(ticket===generation)message(error.message,true);});
   for(const event of row.planning?.events||[])eventBlock(form,event);
   form.addEventListener('input',()=>{dirty=true;});form.addEventListener('change',()=>{dirty=true;});
   if(row.application_state!=='draft'){for(const control of form.elements)control.disabled=true;cancel.disabled=false;summary.disabled=false;transfer.disabled=false;message('This trial is finalized and cannot be edited here.');}
@@ -58,9 +59,9 @@ export function mountTrialEditor({client,container,message,action,onSaved}){
    const {data,error}=result;
    if(ticket!==generation)return;
    if(error){if(error.code==='PGRST202')throw new Error('Trial saving needs the new Supabase setup SQL. Your draft remains on this screen.');if(error.code==='40001')throw new Error('Another change was saved. Keep a copy of your changes, then reopen this trial before saving.');throw new Error(error.message||'Unable to save. Your changes remain here; retry or reopen the trial.');}
-   row={...draft,revision:data.revision};dirty=false;await onSaved(row);message('Trial draft saved to your club.');
+   const firstSave=row.revision<0;row={...draft,revision:data.revision};dirty=false;await onSaved(row);if(firstSave)await feeEditor.open(row);message('Trial draft saved to your club.');
   });});container.scrollIntoView({behavior:'smooth'});
  }
- window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
- return {open,canLeave(){return !dirty||confirm('Leave the application without saving its latest changes?');},clear(){generation++;row=null;dirty=false;container.hidden=true;container.replaceChildren();}};
+ window.addEventListener('beforeunload',event=>{if(dirty||feeEditor?.isDirty()){event.preventDefault();event.returnValue='';}});
+ return {open,canLeave(){return feeEditor?.canLeave()!==false&&(!dirty||confirm('Leave the application without saving its latest changes?'));},clear(){generation++;feeEditor?.clear();row=null;dirty=false;container.hidden=true;container.replaceChildren();}};
 }
