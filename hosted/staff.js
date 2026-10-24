@@ -1,3 +1,4 @@
+import {createStaffAccount} from './account-signup.js';
 import {requestPasswordReset,exchangeEmailCallback,saveRecoveredPassword} from './password-recovery.js';
 import {trialWorkflow} from './trial-workflow.js';
 import {mountEntryPreview} from './entry-preview.js';
@@ -73,7 +74,7 @@ $('request-reset-form').addEventListener('submit',event=>{event.preventDefault()
 $('new-password-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>{try{const result=await saveRecoveredPassword(client.auth,$('new-password-value').value,$('confirm-password').value,recoveryReady);recoveryReady=false;recoveryScreen('login');message(result);}finally{$('new-password-value').value='';$('confirm-password').value='';}});});
 $('cancel-reset').addEventListener('click',()=>action(async()=>{recoveryReady=false;$('new-password-form').reset();await client.auth.signOut({scope:'local'});recoveryScreen('login');message('Password reset cancelled. Your password was not changed.');}));
 $('auth-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('password').value='';if(error)throw new Error('Sign-in failed. Check your email, password and email confirmation.');await refresh();});});
-$('signup').addEventListener('click',()=>{if(!$('auth-form').reportValidity())return;action(async()=>{const {error}=await client.auth.signUp({email:$('email').value.trim(),password:$('password').value,options:{emailRedirectTo:location.origin+'/'}});$('password').value='';if(error)throw new Error('Account creation could not be completed. Try again later or contact the trial administrator.');message('Check your email for confirmation, then return here to sign in.');});});
+$('signup').addEventListener('click',()=>{if(!$('auth-form').reportValidity())return;action(async()=>{try{const result=await createStaffAccount(client.auth,$('email').value,$('password').value,location.origin);if(result.signedIn)await refresh();else message(result.message);}finally{$('password').value='';}});});
 $('club-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>{await createClub(client,$('club-name').value,$('timezone').value);$('club-name').value='';await refresh();});});
 $('signout').addEventListener('click',()=>action(async()=>{const {error}=await client.auth.signOut();if(error)throw new Error('Sign out failed. Please retry.');editor.clear();await refresh();}));
 $('workspace-home').addEventListener('click',()=>{if(leaveEditors()){clearTrialContext();const url=new URL(location.href);for(const key of ['trial','trialTitle','view'])url.searchParams.delete(key);history.replaceState(null,'',url);}});

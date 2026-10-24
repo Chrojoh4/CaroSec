@@ -40,6 +40,6 @@ export function createBrowserAuth(config,storage,{clientFactory=createClient,ver
   const validated=publicAuthConfig({NEXT_PUBLIC_SUPABASE_URL:config.url,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:config.publishableKey});
   if(!storage)throw new AccessError('Session storage is required.',503);
   return clientFactory(validated.url,validated.publishableKey,{
-    auth:{storage:verifierStorage?browserAuthStorage(storage,verifierStorage):storage,storageKey:'caro-staff-session',persistSession:true,autoRefreshToken:true,flowType:'pkce',detectSessionInUrl:false},
+    auth:{storage:verifierStorage?browserAuthStorage(storage,verifierStorage):storage,storageKey:'caro-staff-session',persistSession:true,autoRefreshToken:true,flowType:'pkce',experimental:{appendPkceFlowIdToRedirects:true},detectSessionInUrl:false},
   });
 }

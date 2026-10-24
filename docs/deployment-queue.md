@@ -90,3 +90,6 @@ Apply output/deployment/editable-users-20261024/apply-editable-users.sql once in
 
 ## Password recovery (2026-10-24)
 No SQL migration. Follow docs/password-recovery.md for the Supabase redirect allowlist, email sender and separate security-notification settings. Production email delivery has not been verified.
+
+## Concurrent account signup (2026-10-24)
+No SQL. Apply the narrow flow-ID redirect patterns and sender checks in docs/group-account-signup.md before testing club attendees. Signup and recovery share per-flow verifier handling; no roles are automatically assigned.
