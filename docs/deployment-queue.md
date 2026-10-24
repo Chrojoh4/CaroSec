@@ -81,3 +81,6 @@ Private premium testing links now open the read-only online form and POST to the
 
 
 October 24: apply only the new `20261024202758_draft_offerings.sql` after earlier migrations, then deploy the matching workflow update. It adds a protected draft-offerings table and version-checked RPC, updates draft streams through the existing writer, and opens no intake. Existing finalized entry settings remain authoritative. Draft assignments carry source/fee snapshots to invalidate changes and prefill official setup after finalization; the host still confirms the final setup and agreement. Connected Supabase still lacks the CARO project, so no remote migration was applied.
+
+## Users and access directory (2026-10-24)
+Apply `20261024204328_administrator_user_directory.sql` in CARO. This adds a read-only administrator RPC combining accounts, system administrator status, club membership and trial assignments. No data or privileges are changed. The UI keeps the existing membership list and controls available until the RPC is installed. No separate assistant role is invented; current scorer limitations are explicit.

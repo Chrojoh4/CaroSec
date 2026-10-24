@@ -14,7 +14,7 @@ test('System Administrator crosses clubs without granting ordinary staff access 
  grant usage on schema auth to anon,authenticated,service_role;grant execute on function auth.uid(),auth.jwt() to anon,authenticated,service_role;
  insert into auth.users values('${admin}','admin@example.com'),('${owner}','owner@example.com');`);
  for(const file of ['202610190001_caro_foundation.sql','20261020153706_hosted_trial_drafts.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
- const bundle=await databaseUpdate();assert.equal(bundle.files.length,18);await db.exec(bundle.sql);
+ const bundle=await databaseUpdate();assert.equal(bundle.files.length,19);await db.exec(bundle.sql);
  const as=async(user,claims='{}')=>{await db.exec('reset role;set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[user,claims]);};
  const one=async(sql,args=[])=>(await db.query(sql,args)).rows[0];
  await as(owner);const club=(await one("select public.caro_create_club('Other club','America/Edmonton') id")).id;
@@ -24,6 +24,9 @@ test('System Administrator crosses clubs without granting ordinary staff access 
  await assert.rejects(()=>db.query("insert into caro_private.system_administrators(user_id,reason) values($1,'Self promotion')",[admin]),/permission denied/);
  await db.exec('reset role');await db.query("insert into caro_private.system_administrators(user_id,reason) values($1,'Disposable test bootstrap')",[admin]);
  await as(admin);assert.equal((await one('select public.caro_is_administrator() allowed')).allowed,true);assert.equal((await db.query('select * from public.caro_clubs')).rows.length,1);
+ const directory=async()=>(await one('select public.caro_administrator_users() users')).users;
+ let users=await directory();assert.equal(users.length,2);assert.equal(users.find(u=>u.user_id===admin).administrator,true);assert.deepEqual(users.find(u=>u.user_id===admin).memberships,[]);assert.equal(users.find(u=>u.user_id===owner).memberships[0].role,'owner');
+ await as(owner);await assert.rejects(directory,/Administrator access required/);await as(admin,'{"is_anonymous":true}');await assert.rejects(directory,/Administrator access required/);await db.exec('reset role;set role anon');await assert.rejects(directory,/permission denied/);await as(admin);
  const id='10000000-0000-0000-0000-000000000001';const args=[id,club,-1,'Admin trial','2027-04-17','2027-04-18','America/Edmonton',{events:[]}];const save='select public.caro_save_trial_draft($1,$2,$3,$4,$5,$6,$7,$8) result';
  assert.equal((await one(save,args)).result.revision,0);
  assert.equal((await db.query('select * from public.caro_administrator_staff()')).rows.length,2);
@@ -89,7 +92,7 @@ test('System Administrator crosses clubs without granting ordinary staff access 
  await t.test('administrative trial assignments grant and revoke secretary access with audit and no duplicate changes',async()=>{
   const assign='select public.caro_administrator_trial_assignment($1,$2,$3,$4) changed';
   await as(admin);assert.equal((await db.query('select * from public.caro_trials')).rows.length,0);await assert.rejects(()=>db.query(assign,[id,admin,true,'Self assign access']),/Administrator access required/);
-  await as(owner);assert.equal((await one(assign,[id,admin,true,'Assign trial secretary'])).changed,true);assert.equal((await one(assign,[id,admin,true,'Repeat assignment'])).changed,false);
+  await as(owner);assert.equal((await one(assign,[id,admin,true,'Assign trial secretary'])).changed,true);const listed=(await directory()).find(u=>u.user_id===admin);assert.equal(listed.administrator,false);assert.equal(listed.assignments[0].trial_id,id);assert.equal(listed.assignments[0].role,'secretary');assert.equal((await one(assign,[id,admin,true,'Repeat assignment'])).changed,false);
   await as(admin);assert.equal((await db.query('select * from public.caro_trials where id=$1',[id])).rows.length,1);
   await as(owner);assert.equal((await one(assign,[id,admin,false,'Trial work completed'])).changed,true);
   await as(admin);assert.equal((await db.query('select * from public.caro_trials where id=$1',[id])).rows.length,0);

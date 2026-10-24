@@ -16,3 +16,5 @@ Use the C-WAGS/SDDA operating sequence as the interaction template, while keepin
 Administrator club memberships and explicit trial assignments control staff access. A secretary may serve several clubs; an invitation does not replace authorization. Judge replacements use the separate audited amendment workflow.
 
 Implementation and migration: `20261024202758_draft_offerings.sql` follows all earlier migrations. No real trial settings are changed by applying the migration. The host must select and save the intended offerings. Existing incomplete trials are not silently filled with assumed fees or streams.
+
+Administrators use **Users & access** to search registered accounts and review system administrator status, active/inactive club memberships and trial assignments together. Membership and assignment changes retain the existing required reason and audit history. Administrator grants remain a separately controlled database operation.
