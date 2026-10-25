@@ -1,0 +1,55 @@
+import {trialDayKeys,dayClasses,orderedDraftRounds,reorderDayClass,setClassRoundCount} from '../src/domain/round-planner.js';
+import {validCalendarDate} from '../src/domain/date-time.js';
+const levels=['Novice','Intermediate','Advanced','Excellent','Versatility','Versatility Excellent','Working'];
+const formats=['Regular','Team','Brace','Working'];
+export function mountRoundPlanner({container,form,initial=[],locked=false,onChange,message}){
+ let events=structuredClone(initial),activeDay=null,dragged=null,disposed=false;
+ const el=(tag,text)=>{const n=document.createElement(tag);n.textContent=text||'';return n;};
+ const editable=()=>!locked&&document.body.getAttribute('aria-busy')!=='true';
+ const days=()=>trialDayKeys(form.elements.start_date.value,form.elements.end_date.value,events);
+ const dayLabel=day=>validCalendarDate(day)?new Date(day+'T12:00:00Z').toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}):'Check event date';
+ const changed=()=>{onChange();};
+ function updateOrder(next){if(!editable())return;events=next;changed();render();}
+ function field(parent,key,label,value,choices){const wrap=el('label',label),input=el(choices?'select':'input');input.name=key;if(choices){for(const item of choices){const option=el('option',item);option.value=item;input.append(option);}}else if(key==='dayId')input.type='date';input.value=value;input.maxLength=2000;input.disabled=locked;wrap.append(input);parent.append(wrap);return input;}
+ function roundCard(group,event,index){
+  const card=el('details');card.className='round-card';card.dataset.event='';const summary=el('summary');card.append(summary);const title=()=>{const number=dayClasses(events,event.dayId).find(g=>g.key===group.key)?.events.findIndex(e=>e.id===event.id)??index;summary.textContent=event.level+' · '+event.format+' · Class round '+(number+1)+' · '+(event.judge||'Judge not assigned');};title();
+  const content=el('div');content.className='round-card-fields';card.append(content);
+  const id=field(content,'id','Event ID',event.id);id.type='hidden';id.parentElement.hidden=true;
+  const date=field(content,'dayId','Event date',event.dayId),level=field(content,'level','Class',event.level,levels),format=field(content,'format','Format',event.format,formats);
+  for(const [key,label] of [['stream','Stream / offered levels'],['judge','Judge for this round'],['exercises','Working exercises and levels (if applicable)']]){const input=field(content,key,label,event[key]);input.addEventListener('input',()=>{if(!editable())return;event[key]=input.value;title();changed();});}
+  const regroup=()=>{events=orderedDraftRounds(events);changed();render();};
+  date.addEventListener('change',()=>{if(!editable())return;event.dayId=date.value;activeDay=date.value;regroup();});
+  level.addEventListener('change',()=>{if(!editable())return;event.level=level.value;if(event.level==='Working')event.format='Working';else if(event.format==='Working')event.format='Regular';regroup();});
+  format.addEventListener('change',()=>{if(!editable())return;event.format=format.value;if(event.format==='Working')event.level='Working';else if(event.level==='Working')event.level='Novice';regroup();});
+  if(!locked){const controls=el('div');controls.className='round-actions';for(const [label,direction] of [['Move round up',-1],['Move round down',1]]){const button=el('button',label);button.type='button';button.className='secondary';button.disabled=index+direction<0||index+direction>=group.events.length;button.addEventListener('click',()=>{const list=dayClasses(events,activeDay),g=list.find(g=>g.key===group.key),i=g.events.findIndex(e=>e.id===event.id),other=i+direction;if(other<0||other>=g.events.length)return;[g.events[i],g.events[other]]=[g.events[other],g.events[i]];updateOrder(trialDayKeys('','',events).flatMap(day=>day===activeDay?list.flatMap(g=>g.events):events.filter(e=>e.dayId===day)));});controls.append(button);}
+   const remove=el('button','Remove this round');remove.type='button';remove.className='secondary';remove.addEventListener('click',()=>updateOrder(events.filter(e=>e.id!==event.id)));controls.append(remove);content.append(controls);
+  }return card;
+ }
+ function render(){
+  if(disposed)return;const allDays=days();if(!allDays.includes(activeDay))activeDay=allDays[0];container.replaceChildren();
+  container.append(el('p',locked?'Finalized round plan: select a day and expand a round to review its details. Editing and reordering are locked.':'Select a day, set the number of rounds for each class, then assign each round’s judge. Class round labels are within that class/day; CARO official event numbers are assigned from the saved overall order when finalized.'));
+  const tabs=el('div');tabs.className='trial-day-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Trial dates');
+  for(const [i,day] of allDays.entries()){const tab=el('button',dayLabel(day));tab.type='button';tab.dataset.roundBrowse='';tab.id='round-day-tab-'+i;tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(day===activeDay));tab.setAttribute('aria-controls','round-day-panel');tab.tabIndex=day===activeDay?0:-1;
+   const activate=()=>{activeDay=day;render();container.querySelector('[role=tab][aria-selected=true]')?.focus();};tab.addEventListener('click',activate);tab.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?allDays.length-1:(i+(e.key==='ArrowRight'?1:-1)+allDays.length)%allDays.length;activeDay=allDays[next];render();container.querySelector('[role=tab][aria-selected=true]')?.focus();});tabs.append(tab);
+  }container.append(tabs);
+  if(!activeDay){container.append(el('p','Enter the first and last trial dates to prepare the day tabs.'));return;}
+  const panel=el('div');panel.id='round-day-panel';panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby','round-day-tab-'+allDays.indexOf(activeDay));container.append(panel);
+  if(!validCalendarDate(activeDay)||activeDay<form.elements.start_date.value||activeDay>form.elements.end_date.value)panel.append(el('p','This day is outside the trial date range. Edit its event dates or the trial dates before saving; no rounds have been discarded.'));
+  const groups=dayClasses(events,activeDay,{contiguous:locked}),total=groups.reduce((n,g)=>n+g.events.length,0);panel.append(el('h3',dayLabel(activeDay)+' · '+total+' round'+(total===1?'':'s')));
+  groups.forEach((group,groupIndex)=>{
+   const box=el('article');box.className='round-class-group';box.dataset.classKey=group.key;const header=el('div');header.className='class-group-heading';header.append(el('h4',group.level+' · '+group.format+' · '+group.events.length+' round'+(group.events.length===1?'':'s')));box.append(header);
+   if(!locked){const controls=el('div');controls.className='round-actions';const drag=el('button','↕ Drag');drag.type='button';drag.className='secondary';drag.draggable=true;drag.setAttribute('aria-label','Drag '+group.level+' '+group.format+' to reorder this day');drag.addEventListener('dragstart',e=>{if(!editable()){e.preventDefault();return;}dragged={day:activeDay,key:group.key};e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',group.key);});drag.addEventListener('dragend',()=>{dragged=null;});controls.append(drag);
+    for(const [text,direction] of [['Move class up',-1],['Move class down',1]]){const move=el('button',direction<0?'↑ Up':'↓ Down');move.setAttribute('aria-label',text);move.type='button';move.className='secondary';move.disabled=groupIndex+direction<0||groupIndex+direction>=groups.length;move.addEventListener('click',()=>updateOrder(reorderDayClass(events,activeDay,group.key,{direction})));controls.append(move);}header.append(controls);
+    box.addEventListener('dragover',e=>{if(editable()&&dragged?.day===activeDay&&dragged.key!==group.key){e.preventDefault();e.dataTransfer.dropEffect='move';}});box.addEventListener('drop',e=>{if(!editable()||dragged?.day!==activeDay)return;e.preventDefault();const next=reorderDayClass(events,activeDay,dragged.key,{targetKey:group.key});dragged=null;updateOrder(next);});
+    const countRow=el('div');countRow.className='round-count';const label=el('label','Rounds'),count=el('input');count.setAttribute('aria-label','Number of rounds');count.type='number';count.min='1';count.max='150';count.value=String(group.events.length);label.append(count);const apply=el('button','Set rounds');apply.setAttribute('aria-label','Apply round count');apply.type='button';apply.className='secondary';apply.addEventListener('click',()=>{if(!editable())return;try{updateOrder(setClassRoundCount(events,activeDay,group.level,group.format,Number(count.value),()=>crypto.randomUUID()));}catch(error){message(error.message,true);}});countRow.append(label,apply);box.append(countRow);
+   }
+   for(const [i,event] of group.events.entries())box.append(roundCard(group,event,i));panel.append(box);
+  });
+  if(!locked)panel.append(el('p','Reducing a round count removes that class’s last draft rounds. Save the trial to keep changes.'));
+  if(!groups.length)panel.append(el('p','No classes on this day yet. Add the first class below.'));
+  if(!locked){const addBox=el('fieldset');addBox.className='add-day-class';addBox.append(el('legend','Add a class to this day'));const level=field(addBox,'new-class-level','Class to add','Novice',levels),format=field(addBox,'new-class-format','Class format','Regular',formats),count=field(addBox,'new-class-count','Number of new rounds','1');count.type='number';count.min='1';count.max='150';level.addEventListener('change',()=>{if(level.value==='Working')format.value='Working';else if(format.value==='Working')format.value='Regular';});format.addEventListener('change',()=>{if(format.value==='Working')level.value='Working';else if(level.value==='Working')level.value='Novice';});const add=el('button','Add class rounds');add.type='button';add.addEventListener('click',()=>{if(!editable())return;try{const existing=dayClasses(events,activeDay).find(g=>g.level===level.value&&g.format===format.value)?.events.length||0;updateOrder(setClassRoundCount(events,activeDay,level.value,format.value,existing+Number(count.value),()=>crypto.randomUUID()));}catch(error){message(error.message,true);}});addBox.append(add);panel.append(addBox);}
+ }
+ const refreshDates=()=>{if(disposed)return;render();};form.elements.start_date.addEventListener('change',refreshDates);form.elements.end_date.addEventListener('change',refreshDates);
+ const arranged=locked?events:orderedDraftRounds(events);const regrouped=arranged.some((e,i)=>e.id!==events[i]?.id);events=arranged;render();if(regrouped){changed();message('Draft rounds are grouped by date and class. Review and save the displayed order.');}
+ return {getEvents:()=>structuredClone(events),clear(){disposed=true;form.elements.start_date?.removeEventListener('change',refreshDates);form.elements.end_date?.removeEventListener('change',refreshDates);container.replaceChildren();}};
+}
