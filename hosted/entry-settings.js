@@ -48,5 +48,5 @@ export function mountEntrySettings({client,container,action,message,navigate}){
   });});
   container.append(form);container.scrollIntoView({behavior:'smooth'});
  }
- return {open,clear,canLeave(){return draftEditor.canLeave()&&(!dirty||confirm('Leave entry setup without saving?'));}};
+ return {open,clear,getDraftProof:()=>draftEditor.getDraftProof(),canLeave(){return draftEditor.canLeave()&&(!dirty||confirm('Leave entry setup without saving?'));}};
 }

@@ -2,9 +2,9 @@ import {draftOfferedLevels} from '../src/domain/entry-preview.js';
 import {mountEntryPreview} from './entry-preview.js';
 import {money} from '../src/domain/premium.js';
 export function mountDraftOfferings({client,container,action,message,navigate}){
- let generation=0,dirty=false,proof=null;
+ let generation=0,dirty=false,proof=null,currentProof=null;
  const el=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
- function clear(){generation++;dirty=false;proof?.clear();proof=null;}
+ function clear(){generation++;dirty=false;proof?.clear();proof=null;currentProof=null;}
  async function open(trial){
   clear();const ticket=generation;container.hidden=false;container.replaceChildren();container.append(el('h2','Classes, streams and fees'),el('p','Set the offered streams, competitive and FEO prices, charging unit and capacity while the trial is a draft. Saving updates the draft streams and entry previews; it does not finalize or open entries.'));
   const results=await Promise.all([client.from('caro_premium_drafts').select('content,revision').eq('trial_id',trial.id).maybeSingle(),client.from('caro_draft_offerings').select('rows,revision,fees_snapshot').eq('trial_id',trial.id).maybeSingle()]);
@@ -27,6 +27,7 @@ export function mountDraftOfferings({client,container,action,message,navigate}){
    rows.push({event,streams,fee,feo,basis,capacity});form.append(box);
   }
   const currentRows=()=>rows.map(r=>({key:r.event.id,levels:r.streams(),fee_index:r.fee.value===''?null:Number(r.fee.value),feo_index:r.feo.value===''?null:Number(r.feo.value),basis:r.basis.value,capacity:Number(r.capacity.value)}));
+  currentProof=()=>({trial,draftRows:currentRows(),premiumContent:premium.content});
   const previewButton=el('button','Preview current entry form and paper PDF — without saving');previewButton.type='button';previewButton.className='secondary';
   const proofContainer=el('div');proofContainer.hidden=true;proof=mountEntryPreview({client,container:proofContainer,action,message,navigate});
   previewButton.addEventListener('click',()=>action(async()=>{await proof.open(trial,{draftRows:currentRows(),premiumContent:premium.content});proofContainer.scrollIntoView({behavior:'smooth'});}));
@@ -37,5 +38,5 @@ export function mountDraftOfferings({client,container,action,message,navigate}){
    const {data,error}=await client.rpc('caro_save_draft_offerings',{p_trial:trial.id,p_trial_revision:trial.revision,p_revision:saved?.revision??-1,p_premium_revision:premium.revision,p_rows:values});if(ticket!==generation)return;if(error)throw new Error(error.message);dirty=false;await open({...trial,revision:data.trialRevision,planning:data.planning});message('Draft offerings saved. Entry previews now show the selected streams and assigned prices. Review before finalizing.');
   });});container.append(form,proofContainer);
  }
- return {open,clear,canLeave:()=>!dirty||confirm('Leave unsaved draft offerings?')};
+ return {open,clear,getDraftProof:()=>currentProof?.()||null,canLeave:()=>!dirty||confirm('Leave unsaved draft offerings?')};
 }

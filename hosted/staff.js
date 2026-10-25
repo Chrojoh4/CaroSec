@@ -34,6 +34,15 @@ function leaveEditors(){if(![editor,premiumEditor,sanctionEditor,journal,finance
 function openNewTrial(value){if(!leaveEditors())return;clearTrialContext();editor.open(value);}
 function showTrialContext(row){selectedTrialId=row.id;$('workspace-home-content').hidden=true;$('trial-navigation').hidden=false;$('selected-trial-banner').hidden=false;$('selected-trial-name').textContent=row.title;$('selected-trial-banner').textContent=(row.is_practice?'PRACTICE · ':'')+row.title+' · '+row.start_date+' to '+row.end_date;}
 async function openTrialSection(trialId,section,entryId=null){
+ const draftProof=entrySettings?.getDraftProof?.();
+ // Proofing is a reversible view of current controls, not a request to discard edits.
+ if(draftProof?.trial.id===trialId&&selectedTrialId===trialId&&['entry-preview','entry-paper-proof','entry-settings'].includes(section)&&['entry-settings','entry-preview','entry-paper-proof'].includes(selectedSection)){
+  if(section==='entry-settings'){entryPreview.clear();$('entry-settings-panel').hidden=false;}
+  else{$('entry-settings-panel').hidden=true;await entryPreview.open(draftProof.trial,{draftRows:draftProof.draftRows,premiumContent:draftProof.premiumContent,downloadPaper:section==='entry-paper-proof'});}
+  selectedSection=section;const routeUrl=new URL(location.href);routeUrl.searchParams.set('view',section==='entry-paper-proof'?'entry-preview':section);history.replaceState(null,'',routeUrl);
+  for(const button of document.querySelectorAll('#trial-navigation button')){if(button.id==='nav-'+(section==='entry-paper-proof'?'entry-preview':section))button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}
+  return;
+ }
  if(!leaveEditors())return;
  const ticket=refreshGeneration;const {data:row,error}=await client.from('caro_trials').select('id,club_id,title,start_date,end_date,timezone,application_state,is_practice,sanction_status,submitted_on,trial_number,approval_evidence,revision,planning').eq('id',trialId).maybeSingle();
  if(ticket!==refreshGeneration)return;if(error||!row){clearTrialContext();throw new Error('Trial access could not be verified. Refresh your workspace.');}

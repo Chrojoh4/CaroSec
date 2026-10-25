@@ -35,3 +35,6 @@ In Classes, streams & fees, choose streams and prices, then select **Preview cur
 
 
 Entry-form defaults: draft Rally rounds default to B when no stream is specified. Novice and Intermediate always display B. A single offered stream or Working level is shown as fixed text, with no unnecessary dropdown. Multiple offered streams/Working levels retain a choice; Both is a host offering shorthand for B and C, never an entrant stream. Working levels are not inferred when missing. The paper PDF follows the same display convention. Existing stored trials and entry terms are not rewritten by these presentation changes.
+
+
+Switching from Classes, streams & fees to the sidebar Entry forms & proofing view uses the current unsaved controls for that draft. Returning to Classes, streams & fees preserves those controls and the unsaved state. The downloaded private PDF uses that same selection snapshot. Other navigation still checks for unsaved changes. FEO is a separate per-round flag shown when an FEO fee is selected; it is not a B/C stream and does not control the competitive price.
