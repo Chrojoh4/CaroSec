@@ -110,7 +110,10 @@ for event in trial['events']:
   for exercise,row_height in zip(event['exercises'],row_heights):
    if y-row_height<61:
     page();section(f"Round {event['round']} - Working (continued)",int(row_height)+30)
-   row([(f"r{event['round']}_{exercise['id']}_level",exercise['name']+' - choose level, or leave Select...',52,508,event['levels'])])
+   if len(event['levels'])==1:check(f"r{event['round']}_{exercise['id']}_enter",exercise['name']+' - Level: '+event['levels'][0])
+   else:row([(f"r{event['round']}_{exercise['id']}_level",exercise['name']+' - choose level, or leave Select...',52,508,event['levels'])])
+ elif len(event['levels'])==1:
+  ensure(59);fixed=para('Stream: '+event['levels'][0]);_,fixedh=fixed.wrap(180,1000);fixed.drawOn(c,52,y-fixedh);row([(f"r{event['round']}_amount",'Event fee (CAD)',280,280)],gap=12)
  else:row([(f"r{event['round']}_stream",'Stream',52,180,event['levels']),(f"r{event['round']}_amount",'Event fee (CAD)',280,280)],gap=12)
  y-=4
 section(('5' if has_partner else '4')+'. Fees, payment & submission',140)

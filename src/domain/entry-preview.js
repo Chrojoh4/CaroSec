@@ -1,3 +1,9 @@
+export function draftOfferedLevels(event,levels=[]){
+ if(event.format==='Working')return levels.length?levels:['Not configured'];
+ if(['Novice','Intermediate'].includes(event.level))return ['B'];
+ const values=[...new Set(levels.flatMap(x=>/^both$/i.test(x)?['B','C']:[x]).filter(x=>x&&x!=='Not configured'))];
+ return values.length?values:['B'];
+}
 // Draft layout only. Never infer event prices or eligibility from fee labels.
 export function draftEntryPreview(trial,content={},offerings=null){
  const planning=trial.planning||{};
@@ -5,6 +11,7 @@ export function draftEntryPreview(trial,content={},offerings=null){
  for(const event of config.events){const original=planning.events.find(e=>e.id===event.id),row=offerings?.rows?.find(r=>r.key===event.id),source=['id','dayId','level','format','stream','judge','exercises'].map(key=>original?.[key]||'');
  if(row&&JSON.stringify(row.source)===JSON.stringify(source)&&JSON.stringify(offerings.fees_snapshot)===JSON.stringify(content.fees)){Object.assign(event,{levels:row.levels,fee:row.fee,feoFee:row.feoFee,basis:row.basis,capacity:row.capacity,previewMissingFee:false});}
  }
+ for(const event of config.events)event.levels=draftOfferedLevels(event,event.levels);
  return config;
 }
 
@@ -17,5 +24,6 @@ export function unsavedEntryPreview(trial,content,rows){
   const fee=Number.isInteger(row.fee_index)?content.fees?.[row.fee_index]:null;
   Object.assign(event,{fee:fee||{cents:0},feoFee:Number.isInteger(row.feo_index)?content.fees?.[row.feo_index]||null:null,basis:row.basis||'not configured',capacity:row.capacity,previewMissingFee:!fee});
  }
+ for(const event of config.events)event.levels=draftOfferedLevels(event,event.levels);
  return config;
 }

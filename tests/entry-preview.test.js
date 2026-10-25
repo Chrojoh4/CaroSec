@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {draftEntryPreview,unsavedEntryPreview} from '../src/domain/entry-preview.js';
 import {mountEntryForm} from '../web/entry-form.js';
 const trial={id:'t',title:'Draft trial',start_date:'2026-11-29',end_date:'2026-11-29',timezone:'America/Vancouver',planning:{host:'Host',events:[{id:'regular',level:'Advanced',format:'Regular',stream:'B C',judge:'Judge A'},{id:'team',level:'Novice',format:'Team',stream:'',judge:'Judge B'},{id:'working',level:'Working',format:'Working',stream:'Rookie',judge:'Judge C',exercises:'Drop on Recall; Retrieve'}]}};
-test('draft preview preserves source without guessing fee mappings or streams',()=>{
+test('draft preview preserves source with B defaults without guessing fee mappings',()=>{
  const content={fees:[{label:'Regular',cents:2400}],waiver:'Reviewed source wording'},before=JSON.stringify({trial,content}),preview=draftEntryPreview(trial,content);
- assert.deepEqual(preview.events[0].levels,['B','C']);assert.deepEqual(preview.events[1].levels,['Not configured']);assert.equal(preview.events[0].previewMissingFee,true);assert.equal(preview.events[0].fee.cents,0);assert.equal(preview.events[2].exercises.length,2);assert.equal(preview.waiver,content.waiver);assert.equal(JSON.stringify({trial,content}),before);
+ assert.deepEqual(preview.events[0].levels,['B','C']);assert.deepEqual(preview.events[1].levels,['B']);assert.equal(preview.events[0].previewMissingFee,true);assert.equal(preview.events[0].fee.cents,0);assert.equal(preview.events[2].exercises.length,2);assert.equal(preview.waiver,content.waiver);assert.equal(JSON.stringify({trial,content}),before);
 });
 test('read-only form expands conditional sections, disables every control and never registers mutation or lookup handlers',async()=>{
  const controls=[{disabled:false},{disabled:false}],submit={removed:false,remove(){this.removed=true;}},bar={textContent:''},listeners=[];
@@ -26,4 +26,14 @@ test('unsaved proof uses current selections without modifying saved fees or tria
  const config=unsavedEntryPreview(trial,content,[{key:'regular',levels:['C'],fee_index:0,feo_index:1,basis:'dog',capacity:20},{key:'team',levels:['B'],fee_index:null,feo_index:null,basis:''}]);
  assert.deepEqual(config.events[0].levels,['C']);assert.equal(config.events[0].fee.cents,2400);assert.equal(config.events[0].feoFee.cents,1600);assert.equal(config.events[0].previewMissingFee,false);
  assert.equal(config.events[1].previewMissingFee,true);assert.deepEqual(config.events[1].levels,['B']);assert.equal(JSON.stringify({trial,content}),before);
+});
+
+test('fixed streams and a single Working level are displayed without redundant selects',()=>{
+ const config=draftEntryPreview(trial);config.events[0].levels=['B'];
+ const root={innerHTML:'',querySelectorAll:()=>[],querySelector:()=>null,addEventListener:()=>{}};
+ mountEntryForm(root,config,{readOnly:true});
+ assert.ok(root.innerHTML.includes('Stream:</strong> B'));assert.ok(root.innerHTML.includes('Level: Rookie'));
+ assert.ok(!root.innerHTML.includes('data-event-stream='));assert.ok(!root.innerHTML.includes('data-exercise-level='));
+ const both=structuredClone(trial);both.planning.events[0].stream='B C Both';assert.deepEqual(draftEntryPreview(both).events[0].levels,['B','C']);
+ assert.deepEqual(draftEntryPreview({...trial,planning:{events:[{id:'x',level:'Excellent',format:'Regular',stream:''}]}}).events[0].levels,['B']);
 });

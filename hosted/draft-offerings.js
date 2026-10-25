@@ -1,3 +1,4 @@
+import {draftOfferedLevels} from '../src/domain/entry-preview.js';
 import {mountEntryPreview} from './entry-preview.js';
 import {money} from '../src/domain/premium.js';
 export function mountDraftOfferings({client,container,action,message,navigate}){
@@ -15,8 +16,9 @@ export function mountDraftOfferings({client,container,action,message,navigate}){
   const form=el('form');form.className='draft-offerings-form';const rows=[];
   for(const [index,event] of events.entries()){
    const old=saved?.rows?.find(row=>row.key===event.id),box=el('fieldset');box.append(el('legend','Round '+(index+1)+' · '+event.dayId+' · '+event.level+' '+event.format),el('p','Judge: '+event.judge));
-   const offered=(event.stream||'').split(/[ ,;]+/).filter(Boolean);let streams;
+   const offered=draftOfferedLevels(event,(event.stream||'').split(/[ ,;]+/).filter(Boolean));let streams;
    if(event.format==='Working'){const label=el('label','Offered Working levels (separate with commas)'),input=el('input');input.value=offered.join(', ');input.required=true;label.append(input);box.append(label);streams=()=>input.value.split(/[,;]+/).map(x=>x.trim()).filter(Boolean);}
+   else if(['Novice','Intermediate'].includes(event.level)){box.append(el('p','Stream: B (automatic for this class)'));streams=()=>['B'];}
    else{box.append(el('p','Offered streams — select only those reviewed for this CARO class'));const checks=[];for(const name of [...new Set([...( ['Novice','Intermediate'].includes(event.level)?['B']:['B','C']),...offered])]){const label=el('label',name),check=el('input');check.type='checkbox';check.checked=offered.includes(name);label.prepend(check);label.className='stream-choice';box.append(label);checks.push({name,check});}streams=()=>checks.filter(x=>x.check.checked).map(x=>x.name);}
    function selectFee(labelText,previous,optional){const label=el('label',labelText),select=el('select'),blank=el('option',optional?'FEO not offered':'Choose a saved fee');blank.value='';select.append(blank);fees.forEach((fee,i)=>{const o=el('option',fee.label+' · '+money(fee.cents)+' · '+fee.unit);o.value=String(i);select.append(o);});if(previous){const i=fees.findIndex(f=>f.cents===previous.cents&&f.label===previous.label&&f.unit===previous.unit);if(i>=0)select.value=String(i);}select.required=!optional;label.append(select);box.append(label);return select;}
    const fee=selectFee('Competitive fee',old?.fee,false),feo=selectFee('FEO fee',old?.feoFee,true),basisLabel=el('label','Fee charged per'),basis=el('select');

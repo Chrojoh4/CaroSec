@@ -76,6 +76,15 @@ def generate_private_entry_pdf(authorization,body,source=authorized_source,tempo
    fee=selected_fee(row.get('fee_index'));feo=selected_fee(row.get('feo_index'));basis=row.get('basis','')
    if basis not in ('','dog','entry','exercise'):raise PdfRequestError(422,'Invalid proof charging unit.')
    event.update(levels=levels or ['Not configured'],fee=fee or {'cents':0},feoFee=feo,basis=basis or 'not configured',previewMissingFee=fee is None)
+ if 'trial' in value and value['trial'].get('application_state')!='finalized':
+  for event in data['events']:
+   if event['format']=='Working':continue
+   levels=event.get('levels') or []
+   normalized=[]
+   for level in levels:
+    for item in (['B','C'] if level.lower()=='both' else [level]):
+     if item and item!='Not configured' and item not in normalized:normalized.append(item)
+   event['levels']=['B'] if event['level'] in ('Novice','Intermediate') else normalized or ['B']
  if not isinstance(data.get('events'),list) or not 1<=len(data['events'])<=100:raise PdfRequestError(422,'Save between 1 and 100 rounds before generating this proof.')
  data['privateProof']=True;data['trialNumber']='PRIVATE DRAFT - NOT FOR ENTRY';data['fictional']=False
  with tempfile.TemporaryDirectory(prefix='caro-entry-proof-',dir=temporary_root) as folder:

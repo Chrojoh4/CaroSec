@@ -32,3 +32,6 @@ Two-day fictional browser verification covered per-round judge edits and summary
 
 ### Proof current draft selections before saving
 In Classes, streams & fees, choose streams and prices, then select **Preview current entry form and paper PDF — without saving**. The private online proof opens below the controls and offers a fillable paper PDF of the same selection snapshot. Inputs remain available above it; preview again after corrections. Unselected values stay flagged. This action does not save, finalize, publish, or change received entries. Use Save draft classes, streams and fees only after review. Fee amounts themselves come from the shared saved fee list in Trial details / Premium builder.
+
+
+Entry-form defaults: draft Rally rounds default to B when no stream is specified. Novice and Intermediate always display B. A single offered stream or Working level is shown as fixed text, with no unnecessary dropdown. Multiple offered streams/Working levels retain a choice; Both is a host offering shorthand for B and C, never an entrant stream. Working levels are not inferred when missing. The paper PDF follows the same display convention. Existing stored trials and entry terms are not rewritten by these presentation changes.
