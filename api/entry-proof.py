@@ -6,7 +6,7 @@ class handler(BaseHTTPRequestHandler):
  def do_POST(self):
   try:
    length=int(self.headers.get('Content-Length','0'))
-   if length<1 or length>2000:raise PdfRequestError(422,'Choose a saved trial.')
+   if length<1 or length>100000:raise PdfRequestError(422,'Choose a saved trial.')
    try:body=json.loads(self.rfile.read(length))
    except ValueError:raise PdfRequestError(422,'Choose a saved trial.')
    data=generate_private_entry_pdf(self.headers.get('Authorization'),body,temporary_root=os.environ.get('CARO_PDF_TEMP_ROOT'))

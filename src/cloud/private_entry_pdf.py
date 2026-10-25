@@ -33,7 +33,7 @@ def authorized_source(token,trial_id):
 
 def generate_private_entry_pdf(authorization,body,source=authorized_source,temporary_root=None):
  token=caller_token(authorization,'reviewing entry forms')
- if not isinstance(body,dict) or set(body)!={'trialId'}:raise PdfRequestError(422,'Choose a saved trial.')
+ if not isinstance(body,dict) or set(body) not in ({'trialId'},{'trialId','draftRows'}):raise PdfRequestError(422,'Choose a saved trial.')
  trial_id=body.get('trialId')
  try:
   if not isinstance(trial_id,str) or str(uuid.UUID(trial_id))!=trial_id.lower():raise ValueError()
@@ -57,6 +57,25 @@ def generate_private_entry_pdf(authorization,body,source=authorized_source,tempo
     original=next((e for e in value['trial']['planning']['events'] if e['id']==event['id']),None);row=next((r for r in offering.get('rows',[]) if r['key']==event['id']),None)
     source=[original.get(k,'') for k in ['id','dayId','level','format','stream','judge','exercises']] if original else None
     if row and row.get('source')==source:event.update({k:row[k] for k in ['levels','fee','feoFee','basis','capacity']});event['previewMissingFee']=False
+ if 'draftRows' in body:
+  rows=body['draftRows']
+  if 'trial' not in value or value['trial'].get('application_state')=='finalized':raise PdfRequestError(422,'Unsaved proof is available for draft trials only.')
+  if not isinstance(rows,list) or len(rows)>100:raise PdfRequestError(422,'Invalid proof selections.')
+  fees=(value.get('content') or {}).get('fees') or []
+  seen=set()
+  for row in rows:
+   if not isinstance(row,dict) or row.get('key') in seen:raise PdfRequestError(422,'Invalid proof round.')
+   event=next((e for e in data['events'] if e['id']==row.get('key')),None)
+   if not event:raise PdfRequestError(422,'Unknown proof round.')
+   seen.add(row['key']);levels=row.get('levels')
+   if not isinstance(levels,list) or len(levels)>30 or any(not isinstance(x,str) or len(x)>100 for x in levels):raise PdfRequestError(422,'Invalid proof streams.')
+   def selected_fee(index):
+    if index is None:return None
+    if type(index)!=int or not 0<=index<len(fees):raise PdfRequestError(422,'Invalid proof fee.')
+    return fees[index]
+   fee=selected_fee(row.get('fee_index'));feo=selected_fee(row.get('feo_index'));basis=row.get('basis','')
+   if basis not in ('','dog','entry','exercise'):raise PdfRequestError(422,'Invalid proof charging unit.')
+   event.update(levels=levels or ['Not configured'],fee=fee or {'cents':0},feoFee=feo,basis=basis or 'not configured',previewMissingFee=fee is None)
  if not isinstance(data.get('events'),list) or not 1<=len(data['events'])<=100:raise PdfRequestError(422,'Save between 1 and 100 rounds before generating this proof.')
  data['privateProof']=True;data['trialNumber']='PRIVATE DRAFT - NOT FOR ENTRY';data['fictional']=False
  with tempfile.TemporaryDirectory(prefix='caro-entry-proof-',dir=temporary_root) as folder:

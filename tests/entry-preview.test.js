@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {draftEntryPreview} from '../src/domain/entry-preview.js';
+import {draftEntryPreview,unsavedEntryPreview} from '../src/domain/entry-preview.js';
 import {mountEntryForm} from '../web/entry-form.js';
 const trial={id:'t',title:'Draft trial',start_date:'2026-11-29',end_date:'2026-11-29',timezone:'America/Vancouver',planning:{host:'Host',events:[{id:'regular',level:'Advanced',format:'Regular',stream:'B C',judge:'Judge A'},{id:'team',level:'Novice',format:'Team',stream:'',judge:'Judge B'},{id:'working',level:'Working',format:'Working',stream:'Rookie',judge:'Judge C',exercises:'Drop on Recall; Retrieve'}]}};
 test('draft preview preserves source without guessing fee mappings or streams',()=>{
@@ -19,4 +19,11 @@ test('saved draft assignments populate prices and streams but changed source or 
  const preview=draftEntryPreview(trial,content,setup);assert.equal(preview.events[0].fee.cents,2400);assert.equal(preview.events[0].previewMissingFee,false);assert.equal(preview.events[0].feoFee.cents,1600);
  const changed=structuredClone(trial);changed.planning.events[0].judge='Changed';assert.equal(draftEntryPreview(changed,content,setup).events[0].previewMissingFee,true);
  assert.equal(draftEntryPreview(trial,{fees:[{...content.fees[0],cents:2500}]},setup).events[0].previewMissingFee,true);
+});
+
+test('unsaved proof uses current selections without modifying saved fees or trial',()=>{
+ const content={fees:[{label:'Competitive',cents:2400,unit:'per dog'},{label:'FEO',cents:1600}]},before=JSON.stringify({trial,content});
+ const config=unsavedEntryPreview(trial,content,[{key:'regular',levels:['C'],fee_index:0,feo_index:1,basis:'dog',capacity:20},{key:'team',levels:['B'],fee_index:null,feo_index:null,basis:''}]);
+ assert.deepEqual(config.events[0].levels,['C']);assert.equal(config.events[0].fee.cents,2400);assert.equal(config.events[0].feoFee.cents,1600);assert.equal(config.events[0].previewMissingFee,false);
+ assert.equal(config.events[1].previewMissingFee,true);assert.deepEqual(config.events[1].levels,['B']);assert.equal(JSON.stringify({trial,content}),before);
 });

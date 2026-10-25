@@ -15,6 +15,16 @@ class Checks(unittest.TestCase):
   value=fixture();value['trial']['id']='another-trial'
   with self.assertRaises(PdfRequestError) as error:generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:value)
   self.assertEqual(error.exception.status,403)
+ def test_unsaved_selections_populate_only_private_proof(self):
+  value=fixture();value['content']['fees']=[{'label':'Competitive','cents':2400,'unit':'per dog'}]
+  before=json.dumps(value);event=value['trial']['planning']['events'][0]
+  rows=[{'key':event['id'],'levels':['B','C'],'fee_index':0,'feo_index':None,'basis':'dog'}]
+  data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID,'draftRows':rows},source=lambda *args:value,temporary_root=ROOT/'tmp')
+  text=' '.join(p.extract_text() for p in PdfReader(io.BytesIO(data)).pages)
+  self.assertIn('$24.00',text);self.assertIn('PRIVATE PROOF',text);self.assertEqual(json.dumps(value),before)
+  (ROOT/'output/pdf/unsaved-entry-proof-review.pdf').write_bytes(data)
+  rows[0]['fee_index']=999
+  with self.assertRaises(PdfRequestError):generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID,'draftRows':rows},source=lambda *args:value)
  def test_fill_save_reopen_preserves_fields_and_private_labels(self):
   (ROOT/'tmp').mkdir(exist_ok=True)
   with tempfile.TemporaryDirectory(dir=ROOT/'tmp') as folder:

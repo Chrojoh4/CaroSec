@@ -7,3 +7,15 @@ export function draftEntryPreview(trial,content={},offerings=null){
  }
  return config;
 }
+
+// Private proof of current controls; no persistence or eligibility decision.
+export function unsavedEntryPreview(trial,content,rows){
+ const config=draftEntryPreview(trial,content);
+ for(const event of config.events){
+  const row=rows.find(r=>r.key===event.id);if(!row)continue;
+  event.levels=row.levels.length?row.levels:['Not configured'];
+  const fee=Number.isInteger(row.fee_index)?content.fees?.[row.fee_index]:null;
+  Object.assign(event,{fee:fee||{cents:0},feoFee:Number.isInteger(row.feo_index)?content.fees?.[row.feo_index]||null:null,basis:row.basis||'not configured',capacity:row.capacity,previewMissingFee:!fee});
+ }
+ return config;
+}
