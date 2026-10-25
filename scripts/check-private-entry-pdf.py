@@ -25,6 +25,16 @@ class Checks(unittest.TestCase):
   (ROOT/'output/pdf/unsaved-entry-proof-review.pdf').write_bytes(data)
   rows[0]['fee_index']=999
   with self.assertRaises(PdfRequestError):generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID,'draftRows':rows},source=lambda *args:value)
+ def test_host_defaults_populate_pdf_and_feo_needs_explicit_switch(self):
+  value=fixture();value['content']['fees']=[{'label':'Regular','cents':2400,'unit':'per dog','kind':'regular'},{'label':'FEO','cents':1600,'unit':'per dog','kind':'feo','offered':True},{'label':'Team','cents':1200,'unit':'per entry','kind':'team'},{'label':'Brace','cents':1400,'unit':'per dog','kind':'brace'},{'label':'Working','cents':1000,'unit':'per exercise','kind':'working'}]
+  before=json.dumps(value)
+  data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:value,temporary_root=ROOT/'tmp')
+  reader=PdfReader(io.BytesIO(data));text=' '.join(p.extract_text() for p in reader.pages)
+  self.assertIn('Competitive $24.00 per dog',text);self.assertIn('FEO $16.00 per dog',text);self.assertNotIn('Fee assignment pending',text);self.assertIn('r1_feo',reader.get_fields());self.assertEqual(json.dumps(value),before)
+  (ROOT/'output/pdf/trial-default-fees-proof.pdf').write_bytes(data)
+  value['content']['fees'][1]['offered']=False
+  data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:value,temporary_root=ROOT/'tmp')
+  self.assertNotIn('r1_feo',PdfReader(io.BytesIO(data)).get_fields())
  def test_fill_save_reopen_preserves_fields_and_private_labels(self):
   (ROOT/'tmp').mkdir(exist_ok=True)
   with tempfile.TemporaryDirectory(dir=ROOT/'tmp') as folder:

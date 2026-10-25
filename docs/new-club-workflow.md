@@ -38,3 +38,7 @@ Entry-form defaults: draft Rally rounds default to B when no stream is specified
 
 
 Switching from Classes, streams & fees to the sidebar Entry forms & proofing view uses the current unsaved controls for that draft. Returning to Classes, streams & fees preserves those controls and the unsaved state. The downloaded private PDF uses that same selection snapshot. Other navigation still checks for unsaved changes. FEO is a separate per-round flag shown when an FEO fee is selected; it is not a B/C stream and does not control the competitive price.
+
+
+### Trial default prices and FEO switches
+Fee cards now appear at the top of Trial details & rounds. Set the regular and optional FEO price and explicitly choose Offer FEO for this trial. Relevant Team/Brace/Working fee cards retain independent amounts/units. Rounds inherit defaults automatically; use the round FEO checkbox or bulk all-round switch, and expand Price and capacity exceptions only when needed. Premium builder shares the same price records. See [fee flow review](fee-flow-review.md) for legacy compatibility, host decisions and verification.

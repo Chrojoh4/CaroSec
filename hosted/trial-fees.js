@@ -1,3 +1,5 @@
+import {feeFields,readFeeFields} from './fee-fields.js';
+import {feeKind,feeKinds} from '../src/domain/fee-defaults.js';
 import {applyPremiumDefaults} from '../src/domain/premium-defaults.js';
 export async function saveTrialFees(client,trial,premium,fees){
  if(!Array.isArray(fees)||fees.length>50||fees.some(f=>!f.label?.trim()||!f.unit?.trim()||!Number.isSafeInteger(f.cents)||f.cents<0||f.cents>999999999))throw new Error('Check each fee name, amount and charging unit.');
@@ -10,7 +12,7 @@ export function mountTrialFees({client,container,action,message}){
  const el=(tag,text)=>{const n=document.createElement(tag);n.textContent=text||'';return n;};
  function clear(){generation++;dirty=false;container.replaceChildren();}
  async function open(trial){
-  clear();const ticket=generation;container.append(el('h3','Entry fees'),el('p','These are the same prices used in the premium builder. Edit and save them on either screen. Review round fee assignments after changing prices; received entries retain their recorded charges.'));
+  clear();const ticket=generation;container.append(el('h3','Entry fees'),el('p','Set the default regular price and choose whether this trial offers FEO. Rounds inherit these prices; Team, Brace and Working can have their own prices. These same fees appear in Premium builder. Existing received entries keep their recorded charges.'));
   if(trial.revision<0){container.append(el('p','Save the new trial draft first, then enter its fee amounts here.'));return;}
   const result=await client.from('caro_premium_drafts').select('content,revision').eq('trial_id',trial.id).maybeSingle();if(ticket!==generation)return;if(result.error)throw new Error('The saved trial fees could not be loaded.');
   let premium=result.data||{content:{},revision:-1},filled=[];
@@ -19,10 +21,13 @@ export function mountTrialFees({client,container,action,message}){
   }}
   if(filled.length)container.append(el('p','Your remembered premium answers and fees are loaded into this private draft. Review the prices here and the wording in Premium builder before issuing it.'));
   const form=el('form'),rows=el('div');form.className='trial-fees-form';form.append(rows);
-  function addFee(fee={label:'',cents:null,unit:''}){const row=el('fieldset');row.append(el('legend','Fee amount'));for(const [key,text,value] of [['label','Fee name',fee.label],['amount','Amount CAD',fee.cents===null?'':(fee.cents/100).toFixed(2)],['unit','Charging unit / description',fee.unit]]){const label=el('label',text),input=el('input');input.name=key;input.value=value;input.required=true;if(key==='amount'){input.type='number';input.min='0';input.step='.01';}label.append(input);row.append(label);}const remove=el('button','Remove fee');remove.type='button';remove.className='secondary';remove.addEventListener('click',()=>{row.remove();dirty=true;});row.append(remove);rows.append(row);}
-  for(const fee of premium.content.fees||[])addFee(fee);if(!rows.children.length)addFee();
+  function addFee(fee={label:'Other fee',kind:'custom',cents:null,unit:'per dog / event'}){const row=el('fieldset');row.append(el('legend',feeKinds[feeKind(fee)]+' fee'));feeFields(row,fee);const remove=el('button','Remove fee');remove.type='button';remove.className='secondary';remove.addEventListener('click',()=>{row.remove();dirty=true;});row.append(remove);rows.append(row);}
+  for(const fee of premium.content.fees||[])addFee(fee);
+  if(!rows.children.length){addFee({label:'Competitive Rally',kind:'regular',cents:null,unit:'per dog / event'});addFee({label:'FEO Rally',kind:'feo',cents:0,unit:'per dog / event',offered:false});}
+  const defaultsBar=el('div');defaultsBar.className='actions';
+  for(const kind of ['regular','feo',...new Set((trial.planning?.events||[]).map(e=>e.format.toLowerCase()).filter(x=>['team','brace','working'].includes(x)))]){const button=el('button','Add '+feeKinds[kind]+' price');button.type='button';button.className='secondary';button.addEventListener('click',()=>{if([...rows.children].some(r=>r.querySelector('[name=fee-kind]').value===kind))return;addFee({label:kind==='regular'?'Competitive Rally':kind==='feo'?'FEO Rally':feeKinds[kind],kind,cents:null,unit:kind==='working'?'per selected Working exercise':kind==='team'||kind==='brace'?'per event entry / group':'per dog / event',offered:false});dirty=true;});if(![...rows.children].some(r=>r.dataset.feeKind===kind))defaultsBar.append(button);}form.append(defaultsBar);
   const add=el('button','Add fee amount');add.type='button';add.className='secondary';add.addEventListener('click',()=>{if(rows.children.length>=50)return;addFee();dirty=true;});const save=el('button','Save fee amounts');save.type='submit';form.append(add,save);form.addEventListener('input',()=>dirty=true);
-  form.addEventListener('submit',e=>{e.preventDefault();action(async()=>{const controls=[...form.querySelectorAll('input,button')];controls.forEach(c=>c.disabled=true);try{const fees=[...rows.children].map(r=>({label:r.querySelector('[name=label]').value.trim(),unit:r.querySelector('[name=unit]').value.trim(),cents:Math.round(Number(r.querySelector('[name=amount]').value)*100)}));const saved=await saveTrialFees(client,trial,premium,fees);if(ticket!==generation)return;premium={content:{...premium.content,fees},revision:saved.revision};dirty=false;message('Fee amounts saved. Premium builder will use these same prices. Review round assignments if prices changed.');}finally{if(ticket===generation)controls.forEach(c=>c.disabled=false);}});});container.append(form);
+  form.addEventListener('submit',e=>{e.preventDefault();action(async()=>{const controls=[...form.querySelectorAll('input,select,button')];controls.forEach(c=>c.disabled=true);try{const fees=[...rows.children].map(readFeeFields);const saved=await saveTrialFees(client,trial,premium,fees);if(ticket!==generation)return;premium={content:{...premium.content,fees},revision:saved.revision};dirty=false;message('Trial prices and FEO availability saved. Draft rounds and premiums use these defaults. Review any round exceptions before opening entries.');}finally{if(ticket===generation)controls.forEach(c=>c.disabled=false);}});});container.append(form);
  }
  return {open,clear,isDirty:()=>dirty,canLeave:()=>!dirty||confirm('Leave fee changes without saving them?')};
 }

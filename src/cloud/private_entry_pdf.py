@@ -3,6 +3,7 @@ import json,uuid,re,tempfile,subprocess,sys
 from pathlib import Path
 from urllib.request import Request,build_opener
 from urllib.error import HTTPError,URLError
+from src.cloud.fee_defaults import draft_fee_defaults,fee_kind
 from src.cloud.judge_pdf import configuration,caller_token,NoRedirect,PdfRequestError
 
 def authorized_source(token,trial_id):
@@ -47,7 +48,7 @@ def generate_private_entry_pdf(authorization,body,source=authorized_source,tempo
   trial=value['trial'];content=value.get('content') or {};planning=trial.get('planning') or {}
   if trial.get('id')!=trial_id:raise PdfRequestError(403,'Trial scope could not be verified.')
   data={key:planning.get(key,'') for key in ['host','venue','address','secretary','email']};data.update(title=trial['title'],date=trial['start_date'],endDate=trial['end_date'],timezone=trial['timezone'],premiumVersion='Unpublished draft')
-  data.update({key:content.get(key,'') for key in ['opens','closes','payment','confirmations','waiver','accommodations','moveups','refunds']});data['savedFeeSummary']='; '.join(str(fee.get('label',''))+' $'+format(fee.get('cents',0)/100,'.2f')+' '+str(fee.get('unit','')) for fee in content.get('fees',[]));data['events']=[]
+  data.update({key:content.get(key,'') for key in ['opens','closes','payment','confirmations','waiver','accommodations','moveups','refunds']});data['savedFeeSummary']='; '.join(str(fee.get('label',''))+' $'+format(fee.get('cents',0)/100,'.2f')+' '+str(fee.get('unit','')) for fee in content.get('fees',[]) if not(fee_kind(fee)=='feo' and fee.get('offered') is False));data['events']=[]
   for i,event in enumerate(planning.get('events') or []):
    data['events'].append({'id':event['id'],'round':i+1,'dayId':event.get('dayId',''),'level':event.get('level',''),'format':event.get('format',''),'judge':event.get('judge',''),'levels':re.findall(r'[^ ,;]+',event.get('stream','')) or ['Not configured'],'exercises':[{'id':'preview-'+str(n),'name':name.strip()} for n,name in enumerate(re.split(r'[;,\n]+',event.get('exercises',''))) if name.strip()],'basis':'not configured','fee':{'cents':0},'feoFee':None,'previewMissingFee':True})
  if 'trial' in value and value.get('offerings'):
@@ -57,6 +58,14 @@ def generate_private_entry_pdf(authorization,body,source=authorized_source,tempo
     original=next((e for e in value['trial']['planning']['events'] if e['id']==event['id']),None);row=next((r for r in offering.get('rows',[]) if r['key']==event['id']),None)
     source=[original.get(k,'') for k in ['id','dayId','level','format','stream','judge','exercises']] if original else None
     if row and row.get('source')==source:event.update({k:row[k] for k in ['levels','fee','feoFee','basis','capacity']});event['previewMissingFee']=False
+ if 'trial' in value and value['trial'].get('application_state')!='finalized':
+  fees=(value.get('content') or {}).get('fees') or []
+  for event in data['events']:
+   if not event.get('previewMissingFee'):continue
+   row=next((r for r in (value.get('offerings') or {}).get('rows',[]) if r['key']==event['id']),None)
+   if row and (row.get('source') or [None]*4)[2:4]!=[event['level'],event['format']]:row=None
+   defaults=draft_fee_defaults(event,fees,row)
+   if defaults['fee']:event.update(defaults);event['previewMissingFee']=False
  if 'draftRows' in body:
   rows=body['draftRows']
   if 'trial' not in value or value['trial'].get('application_state')=='finalized':raise PdfRequestError(422,'Unsaved proof is available for draft trials only.')

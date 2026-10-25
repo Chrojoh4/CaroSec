@@ -1,3 +1,4 @@
+import {uniqueFee} from '../src/domain/fee-defaults.js';
 import {draftEntryPreview} from '../src/domain/entry-preview.js';
 import {mountDraftOfferings} from './draft-offerings.js';
 export function mountEntrySettings({client,container,action,message,navigate}){
@@ -30,18 +31,21 @@ export function mountEntrySettings({client,container,action,message,navigate}){
     if(saved){const index=draft.content.fees.findIndex(fee=>fee.cents===saved.cents&&fee.label===saved.label&&fee.unit===saved.unit);if(index>=0)select.value=String(index);}
     label.append(select);box.append(label);return select;
    }
-   const fee=selectFee('Competitive fee',previous?.fee,false),feo=selectFee('FEO fee (optional)',previous?.feoFee,true);
+   const fee=selectFee('Regular price',previous?.fee,false),feo=selectFee('FEO price',previous?.feoFee||uniqueFee(draft.content.fees,'feo'),true);
+   const feoLabel=el('label','Offer FEO for this round'),feoEnabled=el('input');feoEnabled.type='checkbox';feoEnabled.checked=!!previous?.feoFee;feoLabel.className='stream-choice';feoLabel.prepend(feoEnabled);box.insertBefore(feoLabel,feo.parentElement);
+   const showFeo=()=>{feo.parentElement.hidden=!feoEnabled.checked;feo.required=feoEnabled.checked;};showFeo();feoEnabled.addEventListener('change',showFeo);
+
    const basisLabel=el('label','How the selected fee is charged'),basis=el('select');
    for(const [value,text] of event.format==='Working'?[['exercise','Per selected Working exercise']]:[['','Select the fee basis'],['entry','Per event entry / participant group'],['dog','Per participating dog']]){const option=el('option',text);option.value=value;basis.append(option);}
    basis.required=true;if(previous)basis.value=previous.basis;basisLabel.append(basis);box.append(basisLabel);
    const capacityLabel=el('label','Maximum accepted entry orders in this event'),capacity=el('input');capacity.type='number';capacity.min='1';capacity.max='1000';capacity.step='1';capacity.required=true;capacity.value=String(previous?.capacity||50);capacityLabel.append(capacity);box.append(capacityLabel);
-   rows.push({event,fee,feo,basis,capacity});form.append(box);
+   rows.push({event,fee,feo,feoEnabled,basis,capacity});form.append(box);
   }
   const agreementLabel=el('label','Reviewed agreement version / reference'),agreement=el('input');agreement.required=true;agreement.maxLength=200;agreement.value=settings?.agreement_version||'';agreementLabel.append(agreement);form.append(agreementLabel);
   const confirmLabel=el('label'),confirmed=el('input');confirmed.type='checkbox';confirmed.required=true;confirmLabel.className='review-check';confirmLabel.append(confirmed,document.createTextNode(' I reviewed the agreement, each fee basis, FEO availability and event capacities.'));form.append(confirmLabel);
   const save=el('button','Save private entry setup');save.type='submit';form.append(save);form.addEventListener('input',()=>{dirty=true;});form.addEventListener('change',()=>{dirty=true;});
   form.addEventListener('submit',event=>{event.preventDefault();action(async()=>{
-   const pricing=rows.map(row=>({event_id:row.event.id,fee_index:Number(row.fee.value),feo_index:row.feo.value===''?null:Number(row.feo.value),basis:row.basis.value,capacity:Number(row.capacity.value)}));
+   const pricing=rows.map(row=>({event_id:row.event.id,fee_index:Number(row.fee.value),feo_index:!row.feoEnabled.checked||row.feo.value===''?null:Number(row.feo.value),basis:row.basis.value,capacity:Number(row.capacity.value)}));
    const inputs=[...form.querySelectorAll('input,select')];inputs.forEach(input=>input.disabled=true);
    let result;try{result=await client.rpc('caro_save_entry_settings',{p_trial:trial.id,p_revision:settings?.revision??-1,p_premium_revision:draft.revision,p_pricing:pricing,p_agreement:agreement.value.trim(),p_confirmed:confirmed.checked});}finally{inputs.forEach(input=>input.disabled=false);}
    if(ticket!==generation)return;if(result.error)throw new Error(result.error.message);dirty=false;await open(trial);message('Private event prices and capacities saved. Online entries remain closed.');

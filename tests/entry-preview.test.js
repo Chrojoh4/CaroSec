@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {draftEntryPreview,unsavedEntryPreview} from '../src/domain/entry-preview.js';
 import {mountEntryForm} from '../web/entry-form.js';
 const trial={id:'t',title:'Draft trial',start_date:'2026-11-29',end_date:'2026-11-29',timezone:'America/Vancouver',planning:{host:'Host',events:[{id:'regular',level:'Advanced',format:'Regular',stream:'B C',judge:'Judge A'},{id:'team',level:'Novice',format:'Team',stream:'',judge:'Judge B'},{id:'working',level:'Working',format:'Working',stream:'Rookie',judge:'Judge C',exercises:'Drop on Recall; Retrieve'}]}};
-test('draft preview preserves source with B defaults without guessing fee mappings',()=>{
+test('draft preview preserves source while applying unambiguous trial price defaults',()=>{
  const content={fees:[{label:'Regular',cents:2400}],waiver:'Reviewed source wording'},before=JSON.stringify({trial,content}),preview=draftEntryPreview(trial,content);
- assert.deepEqual(preview.events[0].levels,['B','C']);assert.deepEqual(preview.events[1].levels,['B']);assert.equal(preview.events[0].previewMissingFee,true);assert.equal(preview.events[0].fee.cents,0);assert.equal(preview.events[2].exercises.length,2);assert.equal(preview.waiver,content.waiver);assert.equal(JSON.stringify({trial,content}),before);
+ assert.deepEqual(preview.events[0].levels,['B','C']);assert.deepEqual(preview.events[1].levels,['B']);assert.equal(preview.events[0].previewMissingFee,false);assert.equal(preview.events[0].fee.cents,2400);assert.equal(preview.events[2].exercises.length,2);assert.equal(preview.waiver,content.waiver);assert.equal(JSON.stringify({trial,content}),before);
 });
 test('read-only form expands conditional sections, disables every control and never registers mutation or lookup handlers',async()=>{
  const controls=[{disabled:false},{disabled:false}],submit={removed:false,remove(){this.removed=true;}},bar={textContent:''},listeners=[];
@@ -14,11 +14,11 @@ test('read-only form expands conditional sections, disables every control and ne
  assert.ok(root.innerHTML.includes('Your teammate'));assert.ok(root.innerHTML.includes('Partner dog · Team / Brace'));assert.ok(root.innerHTML.includes('Drop on Recall'));assert.ok(root.innerHTML.includes('Fee assignment pending'));assert.ok(root.innerHTML.includes('Offered streams'));assert.ok(root.innerHTML.includes('B / C'));assert.equal(controls.every(c=>c.disabled),true);assert.equal(submit.removed,true);assert.deepEqual(listeners.map(l=>l.type),['submit']);let prevented=false;await listeners[0].callback({preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(submitted,false);assert.equal(lookedUp,false);assert.equal(view.getModel().agree,false);assert.deepEqual(view.getModel().selections,[]);
 });
 
-test('saved draft assignments populate prices and streams but changed source or fees invalidate them',()=>{
+test('changed source or fees show current draft prices with an unreviewed marker',()=>{
  const content={fees:[{label:'Competitive',cents:2400,unit:'per dog'}]},event=trial.planning.events[0],row={key:event.id,source:['id','dayId','level','format','stream','judge','exercises'].map(k=>event[k]||''),levels:['B','C'],fee:content.fees[0],feoFee:{cents:1600},basis:'dog',capacity:40},setup={rows:[row],fees_snapshot:content.fees};
  const preview=draftEntryPreview(trial,content,setup);assert.equal(preview.events[0].fee.cents,2400);assert.equal(preview.events[0].previewMissingFee,false);assert.equal(preview.events[0].feoFee.cents,1600);
- const changed=structuredClone(trial);changed.planning.events[0].judge='Changed';assert.equal(draftEntryPreview(changed,content,setup).events[0].previewMissingFee,true);
- assert.equal(draftEntryPreview(trial,{fees:[{...content.fees[0],cents:2500}]},setup).events[0].previewMissingFee,true);
+ const changed=structuredClone(trial);changed.planning.events[0].judge='Changed';assert.equal(draftEntryPreview(changed,content,setup).events[0].previewUnreviewed,true);
+ assert.equal(draftEntryPreview(trial,{fees:[{...content.fees[0],cents:2500}]},setup).events[0].fee.cents,2500);
 });
 
 test('unsaved proof uses current selections without modifying saved fees or trial',()=>{

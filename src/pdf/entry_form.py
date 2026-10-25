@@ -88,13 +88,14 @@ if has_partner:
  row([('partner_handler','Partner handler (Brace: same handler as above)',52,508)])
  note('Team has two handlers and two dogs; Brace has one handler and two dogs. For a bye dog, contact the secretary rather than entering CARO ID 2799 as an owned dog.')
 section(('4' if has_partner else '3')+'. Choose your events',190)
-if trial.get('savedFeeSummary'):note('Saved premium fees (round assignment still pending): '+trial['savedFeeSummary'])
+if trial.get('savedFeeSummary'):note('Trial fee amounts: '+trial['savedFeeSummary'])
 note('Tick each event you wish to enter. Select an offered stream or Working exercise level. FEO applies to the entire round. Complete both dogs for Team / Brace. Fees are in CAD; check per-dog or per-exercise units.')
 for event in trial['events']:
  # Keep the full event block on one page, including all offered exercises.
  count=len(event['exercises']) if event['format']=='Working' else 1
- fee='Fee assignment pending - see saved premium fees' if event.get('previewMissingFee') else f"Competitive ${event['fee']['cents']/100:.2f} per {event['basis']}"
- if event.get('feoFee'):fee+=f"; FEO ${event['feoFee']['cents']/100:.2f} per {event['basis']}"
+ unit='per '+event['basis'] if event.get('basis') and event['basis']!='not configured' else '(charging unit needs review)'
+ fee='Fee assignment pending - see saved premium fees' if event.get('previewMissingFee') else f"Competitive ${event['fee']['cents']/100:.2f} {unit}"
+ if event.get('feoFee'):fee+=f"; FEO ${event['feoFee']['cents']/100:.2f} {unit}"
  details=fee+'. Judge: '+event['judge']
  _,detailh=para(details).wrap(508,1000)
  row_heights=[para(exercise['name']+' - choose level, or leave Select...').wrap(508,1000)[1]+54 for exercise in event['exercises']] if event['format']=='Working' else [59]

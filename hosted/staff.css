@@ -70,3 +70,10 @@
  .users-table td:last-child{grid-column:1/-1;border-top:1px solid #b8c9be}
 }
 @container (max-width:650px){.users-table tbody>tr{grid-template-columns:minmax(0,1fr)}.users-table td{grid-column:1/-1}.users-table td+td{border-top:1px solid #b8c9be}}
+
+/* Default prices and FEO switches share readable controls on both fee editors. */
+.stream-choice{display:flex;align-items:center;gap:.65rem;min-height:48px}.stream-choice input[type=checkbox]{width:26px;min-width:26px;height:26px;min-height:26px;margin:0}
+.trial-fees-form label.stream-choice{display:flex}.trial-fees-form details,.premium-fee-row details,.draft-offerings-form details{border-top:1px solid #b8c9be;padding-top:.5rem;margin-top:.5rem}
+.trial-fees-form summary,.premium-fee-row summary,.draft-offerings-form summary{cursor:pointer;min-height:48px;font-weight:650}.premium-fee-row{min-width:0;border-radius:10px}.round-price-summary{font-weight:700;background:#e3eee7;padding:.65rem;border-radius:8px;margin:.3rem 0}.trial-price-defaults{background:#f2f5ef}
+
+.trial-fees-form>div:first-child,#premium-fees{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:1rem;align-items:stretch}.trial-fees-form>div:first-child>fieldset,#premium-fees>.premium-fee-row{margin:0;min-width:0}.trial-fees-form legend,.premium-fee-row legend{font-weight:700}

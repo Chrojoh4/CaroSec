@@ -83,3 +83,6 @@ The saved 2025 Trial Officials Guide, PDF page 8, requires CARO to be informed o
 ## Draft setup and reference-program workflow — October 24, 2026
 
 Read C-WAGS trialWorkflow.ts/create-trial and SDDA sidebar/create-trial source as interaction references only. Both prepare offerings/prices before entry documents. CARO draft offerings now save explicit per-round mappings before local finalization. The saved Rally Handbook 2025 §1.4.2 and December 14, 2025 amendment define B/C, with C from Advanced upward; new draft validation rejects A and C for Novice/Intermediate. This governs offered UI choices only, not dog eligibility, qualification or title verification. Working levels and exercise fee basis remain separate. See new-club-workflow.md.
+
+
+2026-10-25 fee-flow review: C-WAGS create-trial and class/levels screens were read-only UX references for default regular/FEO prices, an explicit host FEO switch and class exceptions. CARO handbook section 1.4.3 (saved 2025 handbook extract) establishes host discretion over FEO offerings and fees. CARO retains separate Rally B/C streams, Team/Brace charging units and Working per-exercise setup; no C-WAGS eligibility or cost rules were copied. See [fee-flow review](fee-flow-review.md).

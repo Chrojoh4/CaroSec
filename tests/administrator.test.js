@@ -426,14 +426,14 @@ test('System Administrator crosses clubs without granting ordinary staff access 
  await t.test('draft offerings save explicit streams and fee mappings before finalization without opening intake',async()=>{
   await as(owner);const source=await one('select * from public.caro_trials where id=$1',['20000000-0000-0000-0000-000000000001']),trial=crypto.randomUUID();
   const planning=structuredClone(source.planning);delete planning.finalizedAt;delete planning.finalizedBy;planning.events[0].stream='';const draftArgs=[trial,club,-1,'Draft offerings test',source.start_date,source.end_date,source.timezone,planning];await one(save,draftArgs);
-  await one('select public.caro_save_premium_draft($1,-1,$2) result',[trial,{fees:[{label:'Competitive',cents:2400,unit:'per dog'},{label:'FEO',cents:1600,unit:'per dog'}]}]);
+  await one('select public.caro_save_premium_draft($1,-1,$2) result',[trial,{fees:[{label:'Competitive',cents:2400,unit:'per dog',kind:'regular'},{label:'FEO',cents:1600,unit:'per dog',kind:'feo',offered:true}]}]);
   const rows=planning.events.map(e=>({key:e.id,levels:e.format==='Working'?['Rookie']:['B'],fee_index:0,feo_index:1,basis:e.format==='Working'?'exercise':'dog',capacity:40}));
   const sql='select public.caro_save_draft_offerings($1,$2,$3,$4,$5) result';
   const invalid=structuredClone(rows);invalid[0].fee_index=99;await assert.rejects(()=>db.query(sql,[trial,0,-1,0,invalid]),/price|fee/);
   assert.equal((await one('select count(*)::int n from public.caro_draft_offerings where trial_id=$1',[trial])).n,0);
   const wrongStream=structuredClone(rows);wrongStream[0].levels=['A'];await assert.rejects(()=>db.query(sql,[trial,0,-1,0,wrongStream]),/CARO Rally/);
   const result=(await one(sql,[trial,0,-1,0,rows])).result;assert.equal(result.planning.events[0].stream,'B');assert.equal(result.planning.classesConfirmed,false);
-  const stored=await one('select * from public.caro_draft_offerings where trial_id=$1',[trial]);assert.equal(stored.rows[0].fee.cents,2400);assert.equal(stored.rows[0].feoFee.cents,1600);assert.deepEqual(stored.rows[0].levels,['B']);
+  const stored=await one('select * from public.caro_draft_offerings where trial_id=$1',[trial]);assert.equal(stored.rows[0].fee.cents,2400);assert.equal(stored.rows[0].feoFee.cents,1600);assert.equal(stored.rows[0].feoFee.offered,true);assert.equal(stored.rows[0].fee.kind,'regular');assert.deepEqual(stored.rows[0].levels,['B']);
   assert.equal((await one('select count(*)::int n from public.caro_events where trial_id=$1',[trial])).n,0);
   await assert.rejects(()=>db.query('select public.caro_manual_entry_configuration($1)',[trial]),/approval/);
   await assert.rejects(()=>db.query(sql,[trial,0,0,0,rows]),/changed/);
