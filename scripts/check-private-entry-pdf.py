@@ -30,17 +30,38 @@ class Checks(unittest.TestCase):
   before=json.dumps(value)
   data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:value,temporary_root=ROOT/'tmp')
   reader=PdfReader(io.BytesIO(data));text=' '.join(p.extract_text() for p in reader.pages)
-  self.assertIn('Competitive $24.00 per dog',text);self.assertIn('FEO $16.00 per dog',text);self.assertNotIn('Fee assignment pending',text);self.assertIn('r1_feo',reader.get_fields());self.assertEqual(json.dumps(value),before)
+  self.assertIn('Regular $24.00',text);self.assertIn('FEO $16.00',text);self.assertNotIn('Fee assignment pending',text);self.assertIn('/B_FEO',reader.get_fields()['r1_entry_type']['/_States_']);self.assertEqual(json.dumps(value),before)
   (ROOT/'output/pdf/trial-default-fees-proof.pdf').write_bytes(data)
   value['content']['fees'][1]['offered']=False
   data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:value,temporary_root=ROOT/'tmp')
-  self.assertNotIn('r1_feo',PdfReader(io.BytesIO(data)).get_fields())
+  self.assertNotIn('/B_FEO',PdfReader(io.BytesIO(data)).get_fields()['r1_entry_type']['/_States_'])
+ def test_compact_cards_keep_stream_and_type_choices_exclusive_and_fillable(self):
+  value=fixture();value['trial']['planning']['events']=value['trial']['planning']['events'][:2]
+  value['trial']['planning']['events'][0].update(level='Advanced',format='Regular',stream='B C',judge='Lorraine Perron',dayId='2026-11-29')
+  value['trial']['planning']['events'][1].update(level='Intermediate',format='Regular',stream='B',judge='Lorraine Perron',dayId='2026-11-29')
+  value['content']['fees']=[{'label':'Regular','kind':'regular','cents':2400,'unit':'per dog'},{'label':'FEO','kind':'feo','offered':True,'cents':1600,'unit':'per dog'}]
+  data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:value,temporary_root=ROOT/'tmp')
+  reader=PdfReader(io.BytesIO(data));text=' '.join(p.extract_text() for p in reader.pages);fields=reader.get_fields()
+  self.assertIn('Advanced Stream B, November 29, 2026',text);self.assertIn('Advanced Stream C, November 29, 2026',text)
+  self.assertIn('Judge Lorraine Perron',text);self.assertIn('Regular $24.00',text);self.assertIn('FEO $16.00',text)
+  self.assertNotIn('r1_stream',fields);self.assertNotIn('r1_amount',fields);self.assertNotIn('Event fee (CAD)',text)
+  self.assertEqual(set(fields['r1_entry_type']['/_States_']),{'/Off','/B_Regular','/B_FEO','/C_Regular','/C_FEO'})
+  writer=PdfWriter();writer.clone_document_from_reader(reader);writer.update_page_form_field_values(None,{'r1_entry_type':'/C_FEO','handler_name':'Fictional choice test'},auto_regenerate=False)
+  output=io.BytesIO();writer.write(output);reopened=PdfReader(io.BytesIO(output.getvalue()));self.assertEqual(reopened.get_fields()['r1_entry_type']['/V'],'/C_FEO')
+  active=[];widgets=0
+  for page in reopened.pages:
+   for ref in page.get('/Annots',[]):
+    widget=ref.get_object();parent=widget.get('/Parent')
+    if parent and parent.get_object().get('/T')=='r1_entry_type':
+     widgets+=1;self.assertTrue(widget.get('/AP',{}).get('/N'))
+     if widget.get('/AS')!='/Off':active.append(str(widget.get('/AS')))
+  self.assertEqual(widgets,4);self.assertEqual(active,['/C_FEO'])
  def test_fill_save_reopen_preserves_fields_and_private_labels(self):
   (ROOT/'tmp').mkdir(exist_ok=True)
   with tempfile.TemporaryDirectory(dir=ROOT/'tmp') as folder:
    data=generate_private_entry_pdf('Bearer a.b.c',{'trialId':ID},source=lambda *args:fixture(),temporary_root=folder)
    reader=PdfReader(io.BytesIO(data));text=' '.join(p.extract_text() for p in reader.pages)
-   self.assertIn('PRIVATE PROOF',text);self.assertIn('Fee assignment pending',text);self.assertNotIn('Competitive $0.00',text)
+   self.assertIn('PRIVATE PROOF',text);self.assertIn('Regular price pending',text);self.assertNotIn('Competitive $0.00',text)
    self.assertIn('handler_name',reader.get_fields());self.assertIn('signature',reader.get_fields())
    writer=PdfWriter();writer.clone_document_from_reader(reader);writer.update_page_form_field_values(None,{'handler_name':'Fictional PDF Test'},auto_regenerate=False)
    output=io.BytesIO();writer.write(output);reopened=PdfReader(io.BytesIO(output.getvalue()));self.assertEqual(reopened.get_fields()['handler_name']['/V'],'Fictional PDF Test')

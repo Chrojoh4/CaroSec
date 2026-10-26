@@ -1,5 +1,6 @@
 """Generate a readable interactive entry form; keep rows and event groups intact."""
 import json,sys,os
+from datetime import date
 from pathlib import Path
 from html import escape
 from reportlab.pdfgen import canvas
@@ -88,35 +89,62 @@ if has_partner:
  row([('partner_handler','Partner handler (Brace: same handler as above)',52,508)])
  note('Team has two handlers and two dogs; Brace has one handler and two dogs. For a bye dog, contact the secretary rather than entering CARO ID 2799 as an owned dog.')
 section(('4' if has_partner else '3')+'. Choose your events',190)
-if trial.get('savedFeeSummary'):note('Trial fee amounts: '+trial['savedFeeSummary'])
-note('Tick each event you wish to enter. Select an offered stream or Working exercise level. FEO applies to the entire round. Complete both dogs for Team / Brace. Fees are in CAD; check per-dog or per-exercise units.')
+note('Choose one '+('Regular or FEO' if any(e.get('feoFee') is not None for e in trial['events']) else 'Regular')+' box for each round you enter. All prices are in Canadian dollars.'+(' Complete both dogs for Team / Brace.' if has_partner else ''))
+units=[]
 for event in trial['events']:
- # Keep the full event block on one page, including all offered exercises.
- count=len(event['exercises']) if event['format']=='Working' else 1
- unit='per '+event['basis'] if event.get('basis') and event['basis']!='not configured' else '(charging unit needs review)'
- fee='Fee assignment pending - see saved premium fees' if event.get('previewMissingFee') else f"Competitive ${event['fee']['cents']/100:.2f} {unit}"
- if event.get('feoFee'):fee+=f"; FEO ${event['feoFee']['cents']/100:.2f} {unit}"
- details=fee+'. Judge: '+event['judge']
- _,detailh=para(details).wrap(508,1000)
- row_heights=[para(exercise['name']+' - choose level, or leave Select...').wrap(508,1000)[1]+54 for exercise in event['exercises']] if event['format']=='Working' else [59]
- block=38+(31 if event.get('feoFee') else 0)+detailh+14+sum(row_heights)+12
- ensure(block if block<=593 else 250)
- c.setFillColor(PALE);c.roundRect(52,y-28,508,29,3,fill=1,stroke=0);c.setFillColor(GREEN);c.setFont('Helvetica-Bold',12)
- label=f"Round {event['round']} - {event['level']} / {event['format']} - {event['dayId']}"
- c.acroForm.checkbox(name=f"r{event['round']}_enter",tooltip=clean('Enter '+label),x=62,y=y-21,size=14,borderColor=GREEN,fillColor=white,textColor=GREEN,buttonStyle='check',checked=False,forceBorder=True);fields.append(f"r{event['round']}_enter")
- c.drawString(86,y-19,clean(label));y-=38
- if event.get('feoFee'):check(f"r{event['round']}_feo",'FEO for this whole round')
- note(details)
- if event['format']=='Working':
-  for exercise,row_height in zip(event['exercises'],row_heights):
-   if y-row_height<61:
-    page();section(f"Round {event['round']} - Working (continued)",int(row_height)+30)
-   if len(event['levels'])==1:check(f"r{event['round']}_{exercise['id']}_enter",exercise['name']+' - Level: '+event['levels'][0])
-   else:row([(f"r{event['round']}_{exercise['id']}_level",exercise['name']+' - choose level, or leave Select...',52,508,event['levels'])])
- elif len(event['levels'])==1:
-  ensure(59);fixed=para('Stream: '+event['levels'][0]);_,fixedh=fixed.wrap(180,1000);fixed.drawOn(c,52,y-fixedh);row([(f"r{event['round']}_amount",'Event fee (CAD)',280,280)],gap=12)
- else:row([(f"r{event['round']}_stream",'Stream',52,180,event['levels']),(f"r{event['round']}_amount",'Event fee (CAD)',280,280)],gap=12)
- y-=4
+ category='Working' if event['format']=='Working' else event['format'] if event['format'] in ('Team','Brace') else 'Regular Rally'
+ basis={'dog':'per participating dog','entry':'per event entry / group','exercise':'per selected Working exercise'}.get(event.get('basis'),'charging unit needs host review')
+ label=category+': '+basis
+ if label not in units:units.append(label)
+if units:note('; '.join(units)+'.')
+header_style=ParagraphStyle('round-header',parent=style,fontName='Helvetica-Bold',textColor=GREEN)
+
+def round_date(value):
+ try:
+  day=date.fromisoformat(value);return day.strftime('%B')+' '+str(day.day)+', '+str(day.year)
+ except (ValueError,TypeError):return str(value or 'Date to be confirmed')
+
+def round_card(event,stream):
+ global y
+ category=event['level']+(' '+event['format'] if event['format'] in ('Team','Brace') else '')
+ stream_text=(' Stream '+stream) if event['format']!='Working' else ''
+ title=f"Round {event['round']} · {category}{stream_text}, {round_date(event['dayId'])} · Judge {event['judge']}"
+ heading=Paragraph(escape(clean(title)),header_style);_,height=heading.wrap(484,1000)
+ card_height=height+61
+ ensure(card_height+12+(85 if event['format']=='Working' and event['exercises'] else 0))
+ top=y;c.setFillColor(white);c.setStrokeColor(LINE);c.roundRect(52,top-card_height,508,card_height,7,fill=1,stroke=1)
+ c.setFillColor(PALE);c.rect(53,top-height-22,506,height+21,fill=1,stroke=0)
+ heading.drawOn(c,64,top-12-height)
+ check_y=top-height-45
+ choices=[('Regular','price pending' if event.get('previewMissingFee') else '$'+format(event['fee']['cents']/100,'.2f'))]
+ if event.get('feoFee') is not None:choices.append(('FEO','$'+format(event['feoFee']['cents']/100,'.2f')))
+ name=f"r{event['round']}_entry_type"
+ for index,(kind,price) in enumerate(choices):
+  x=68+index*246
+  value=(stream+'_' if event['format']!='Working' else '')+kind
+  common=dict(name=name,tooltip=clean(f"Round {event['round']} entry type (choose one stream and entry type)"),x=x,y=check_y,size=16,buttonStyle='check',borderColor=GREEN,fillColor=white,textColor=GREEN,forceBorder=True)
+  option_count=(1 if event['format']=='Working' else len(event.get('levels') or ['Not configured']))*len(choices)
+  if option_count==1:c.acroForm.checkbox(**common,checked=False,fieldFlags='')
+  else:c.acroForm.radio(**common,value=value,selected=False,shape='square',fieldFlags='radio')
+  c.setFont('Helvetica',12);c.setFillColor(INK);c.drawString(x+25,check_y+2,kind+' '+price)
+ if name not in fields:fields.append(name)
+ y=top-card_height-12
+
+for event in trial['events']:
+ if event['format']!='Working':event={**event,'levels':[level for level in event.get('levels',[]) if level in ('B','C')] or ['Not configured']}
+ levels=event.get('levels') or ['Not configured']
+ # A shared radio group across stream cards permits one entry type per round.
+ for stream in ([''] if event['format']=='Working' else levels):round_card(event,stream)
+ if event['format']=='Working' and event['exercises']:
+  y-=12
+  section(f"Round {event['round']} - Working exercise selections",90)
+  for exercise in event['exercises']:
+   if len(levels)==1:check(f"r{event['round']}_{exercise['id']}_enter",exercise['name']+' - Level: '+levels[0])
+   else:
+    height=para(exercise['name']+' - choose level, or leave Select...').wrap(508,1000)[1]+54
+    if y-height<61:page();section(f"Round {event['round']} - Working exercise selections (continued)",int(height)+30)
+    row([(f"r{event['round']}_{exercise['id']}_level",exercise['name']+' - choose level, or leave Select...',52,508,levels)])
+y-=12
 section(('5' if has_partner else '4')+'. Fees, payment & submission',140)
 note('Calculate the total using the per-dog / per-exercise units stated above.')
 row([('total_cad','Total entry fees (CAD)',52,240),('payment_reference','Payment method / reference',320,240)])

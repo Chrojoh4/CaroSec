@@ -42,3 +42,7 @@ Switching from Classes, streams & fees to the sidebar Entry forms & proofing vie
 
 ### Trial default prices and FEO switches
 Fee cards now appear at the top of Trial details & rounds. Set the regular and optional FEO price and explicitly choose Offer FEO for this trial. Relevant Team/Brace/Working fee cards retain independent amounts/units. Rounds inherit defaults automatically; use the round FEO checkbox or bulk all-round switch, and expand Price and capacity exceptions only when needed. Premium builder shares the same price records. See [fee flow review](fee-flow-review.md) for legacy compatibility, host decisions and verification.
+
+
+### Compact paper round cards
+Paper/email PDFs put the round number, class, stream, long-form local date and judge in the card header. The only controls in each Rally card are priced Regular and, when offered, FEO boxes. They form one exclusive choice per round. When B and C are both offered, stream-specific cards share that same round choice group. A single Regular-only option remains a simple checkbox. Per-round amount fields and stream dropdowns have been removed; overall total and payment fields remain. Working exercise selections are retained in a separate section. Cards stay intact across page breaks and all body/form text remains 12pt.
