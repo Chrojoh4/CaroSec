@@ -1,0 +1,69 @@
+{
+  "03-fees": {
+    "cropX": 421.9270935058594,
+    "cropWidth": 703.8125
+  },
+  "04-rounds": {
+    "cropX": 382.65625,
+    "cropWidth": 780.0833740234375
+  },
+  "02-trial-details": {
+    "cropX": 399.2604370117187,
+    "cropWidth": 749.1458740234375
+  },
+  "01-sidebar": {
+    "cropX": 65.59375,
+    "cropWidth": 256,
+    "cropHeight": 356
+  },
+  "05-streams": {
+    "cropX": 395.2604370117187,
+    "cropWidth": 757.1458740234375,
+    "cropY": 135,
+    "cropHeight": 458
+  },
+  "06-proof": {
+    "cropX": 384.59375,
+    "cropWidth": 778.4791870117188,
+    "cropY": 270,
+    "cropHeight": 287
+  },
+  "07-approval": {
+    "cropX": 650.9271240234375,
+    "cropWidth": 644
+  },
+  "08-premium": {
+    "cropX": 385.2604370117187,
+    "cropWidth": 777.1458740234375
+  },
+  "09-publish": {
+    "cropX": 409.2604370117187,
+    "cropWidth": 729.1458740234375,
+    "cropY": 185,
+    "cropHeight": 311
+  },
+  "10-entry-setup": {
+    "cropX": 379.2604370117187,
+    "cropWidth": 644
+  },
+  "11-print-sheets": {
+    "cropX": 379.2604370117187,
+    "cropWidth": 644
+  },
+  "12-running-order": {
+    "cropX": 397.2604370117187,
+    "cropWidth": 753.1458740234375
+  },
+  "13-score-entry": {
+    "cropX": 415.9270935058594,
+    "cropWidth": 644
+  },
+  "14-correction": {
+    "cropX": 415.9270935058594,
+    "cropWidth": 644
+  },
+  "15-signoff": {
+    "cropX": 650.9271240234375,
+    "cropWidth": 644
+  }
+}

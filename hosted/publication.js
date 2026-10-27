@@ -8,13 +8,16 @@ export function publicationControls({client,trial,action,message,isCurrent,isDir
  const refresh=el('button','Review public premium'),publish=el('button','Publish reviewed premium'),close=el('button','Close public listing');for(const button of [refresh,publish,close])button.type='button';publish.disabled=true;close.className='secondary';
  box.append(el('h3','Public premium and paper entry form'),el('p','CARO approval and reviewed entry pricing are required. Once an entry arrives, its terms remain frozen. Online intake is not enabled in this release.'),label,refresh,reviewLabel,publish,close,links,preview);
  slug.addEventListener('input',()=>{review.checked=false;pending=null;});
- refresh.addEventListener('click',()=>action(async()=>{
+ refresh.addEventListener('click',async()=>{source=null;review.checked=false;publish.disabled=true;await action(async()=>{
   if(isDirty())throw new Error('Save the premium draft before reviewing publication.');
   const {data,error}=await client.rpc('caro_publication_preview',{p_trial:trial.id});if(!isCurrent())return;if(error)throw new Error(error.message);
   source=data;review.checked=false;publish.disabled=false;pending=null;
   preview.innerHTML=publicPremiumHtml({kind:'public_entry_edition',publicationReady:true,configuration:data.configuration,content:data.content,judgeAmendments:data.judgeAmendments,version:'for review'});
   message(data.usesFrozenTerms?'Reviewing the frozen terms already used for received entries.':'Reviewing the saved application, premium and entry pricing.');
- }));
+ });
+ // The shared busy guard restores prior button states before this handler resumes.
+ if(isCurrent()&&source)publish.disabled=false;
+ });
  publish.addEventListener('click',()=>action(async()=>{
   if(isDirty()||!source||!review.checked||!slug.reportValidity())throw new Error('Save changes, review the public premium and confirm its terms first.');
   const payload={p_trial:trial.id,p_review_token:source.reviewToken,p_slug:slug.value,p_reviewed:true,p_online:false},signature=JSON.stringify(payload);
