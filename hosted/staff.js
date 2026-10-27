@@ -1,3 +1,4 @@
+import {showWorkspaceError} from './workspace-errors.js';
 import {createStaffAccount} from './account-signup.js';
 import {requestPasswordReset,exchangeEmailCallback,saveRecoveredPassword} from './password-recovery.js';
 import {trialWorkflow} from './trial-workflow.js';
@@ -22,7 +23,8 @@ import sampleTrial from '../fixtures/rallypaws-practice-trial.json';
 const $=id=>document.getElementById(id);
 let selectedSection='overview',proofLinkHandled=false,recoveryReady=false,adminWorkspace=null;
 let entryPreview,judgeAmendments,overview,client,busy=false,editor,administration,premiumEditor,sanctionEditor,journal,finance,entrySettings,manualIntake,entriesPanel,trialDay,reportsPanel,refreshGeneration=0,currentUserId=null,selectedTrialId=null;
-function message(value,error=false){$('status').textContent=value;$('status').classList.toggle('error',error);}
+function message(value,error=false){$('status').textContent=value;$('status').classList.toggle('error',error);if(error)showWorkspaceError(value);}
+document.addEventListener('invalid',event=>{const field=event.target;if(!field.validationMessage)return;event.preventDefault();const label=field.closest('label')?.firstChild?.textContent?.trim()||'This field';message(label+': '+field.validationMessage,true);},true);
 async function action(work){
  if(busy)return;busy=true;document.body.setAttribute('aria-busy','true');
  const buttons=[...document.querySelectorAll('button')].map(button=>({button,disabled:button.disabled}));buttons.forEach(({button})=>button.disabled=true);
