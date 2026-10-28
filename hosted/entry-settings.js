@@ -24,7 +24,7 @@ export function mountEntrySettings({client,container,action,message,navigate}){
   const stale=settings&&settings.premium_draft_revision!==draft.revision;
   if(stale)container.append(el('p','The premium has changed since this setup. Review and select every price again before saving.'));
   container.append(el('p','Entry dates from the premium: '+(draft.content.opens||'Not set')+' to '+(draft.content.closes||'Not set')),el('h3','Host agreement to review'),el('p',draft.content.waiver||'No agreement saved.'));
-  if(!draft.content.waiver?.trim()){container.append(el('p','The actual host agreement wording is missing. Save it in Premium builder under Reviewed host agreement, then return here. Giving the agreement a name does not supply its wording.'));go('premium','Add host agreement wording in Premium builder');}
+  if(!draft.content.waiver?.trim()){container.append(el('p','The actual host agreement wording is missing. Save it in Premium builder under Host\u2019s waiver, then return here. Giving the agreement a name does not supply its wording.'));go('premium','Add host agreement wording in Premium builder');}
   const form=el('form'),rows=[];
   for(const event of events){
    const suggested=prepared.events.find(row=>row.id===event.local_key&&!row.previewMissingFee);const previous=stale?null:(settings?.pricing.find(row=>row.event_id===event.id)||suggested),box=el('fieldset');box.append(el('legend','Round '+event.official_round+' · '+event.local_date+' · '+event.level+' '+event.format),el('p','Judge: '+event.judge_name));
@@ -51,7 +51,7 @@ export function mountEntrySettings({client,container,action,message,navigate}){
    const pricing=rows.map(row=>({event_id:row.event.id,fee_index:Number(row.fee.value),feo_index:!row.feoEnabled.checked||row.feo.value===''?null:Number(row.feo.value),basis:row.basis.value,capacity:Number(row.capacity.value)}));
    const inputs=[...form.querySelectorAll('input,select')];inputs.forEach(input=>input.disabled=true);
    let result;try{result=await client.rpc('caro_save_entry_settings',{p_trial:trial.id,p_revision:settings?.revision??-1,p_premium_revision:draft.revision,p_pricing:pricing,p_agreement:agreement.value.trim(),p_confirmed:confirmed.checked});}finally{inputs.forEach(input=>input.disabled=false);}
-   if(ticket!==generation)return;if(result.error)throw new Error(result.error.message==='Review the host agreement and confirm pricing'?'The saved premium needs host agreement wording, an agreement name/version, and the review checkbox. Open Premium builder, save Reviewed host agreement, then reopen this page and review again.':result.error.message);dirty=false;await open(trial);message('Private event prices and capacities saved. Online entries remain closed.');
+   if(ticket!==generation)return;if(result.error)throw new Error(result.error.message==='Review the host agreement and confirm pricing'?'The saved premium needs host agreement wording, an agreement name/version, and the review checkbox. Open Premium builder, save Host\u2019s waiver, then reopen this page and review again.':result.error.message);dirty=false;await open(trial);message('Private event prices and capacities saved. Online entries remain closed.');
   });});
   container.append(form);container.scrollIntoView({behavior:'smooth'});
  }
