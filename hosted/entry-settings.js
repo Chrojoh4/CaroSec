@@ -22,12 +22,12 @@ export function mountEntrySettings({client,container,action,message,navigate}){
   if(!draft||!draft.content.fees?.length){container.append(el('p','Save premium fees, opening/closing dates and the host agreement first.'));go('premium','Complete premium dates, fees and agreement');return;}
   const prepared=draftEntryPreview(trial,draft.content,offerings);
   const stale=settings&&settings.premium_draft_revision!==draft.revision;
-  if(stale)container.append(el('p','The premium has changed since this setup. Review and select every price again before saving.'));
+  if(stale)container.append(el('p','The premium has changed since your last review. Saved prices, FEO choices and capacities are retained below when the fee still matches. Check the updated waiver and any changed fees, confirm the review and save once.'));
   container.append(el('p','Entry dates from the premium: '+(draft.content.opens||'Not set')+' to '+(draft.content.closes||'Not set')),el('h3','Host agreement to review'),el('p',draft.content.waiver||'No agreement saved.'));
   if(!draft.content.waiver?.trim()){container.append(el('p','The actual host agreement wording is missing. Save it in Premium builder under Host\u2019s waiver, then return here. Giving the agreement a name does not supply its wording.'));go('premium','Add host agreement wording in Premium builder');}
   const form=el('form'),rows=[];
   for(const event of events){
-   const suggested=prepared.events.find(row=>row.id===event.local_key&&!row.previewMissingFee);const previous=stale?null:(settings?.pricing.find(row=>row.event_id===event.id)||suggested),box=el('fieldset');box.append(el('legend','Round '+event.official_round+' · '+event.local_date+' · '+event.level+' '+event.format),el('p','Judge: '+event.judge_name));
+   const suggested=prepared.events.find(row=>row.id===event.local_key&&!row.previewMissingFee);const previous=settings?.pricing.find(row=>row.event_id===event.id)||suggested,box=el('fieldset');box.append(el('legend','Round '+event.official_round+' · '+event.local_date+' · '+event.level+' '+event.format),el('p','Judge: '+event.judge_name));
    function selectFee(text,saved,optional){const label=el('label',text),select=el('select'),blank=el('option',optional?'FEO not offered':'Select a saved premium fee');blank.value='';select.append(blank);select.required=!optional;
     draft.content.fees.forEach((fee,index)=>{const option=el('option',fee.label+' · CAD '+(fee.cents/100).toFixed(2)+' · '+fee.unit);option.value=String(index);select.append(option);});
     if(saved){const index=draft.content.fees.findIndex(fee=>fee.cents===saved.cents&&fee.label===saved.label&&fee.unit===saved.unit);if(index>=0)select.value=String(index);}
