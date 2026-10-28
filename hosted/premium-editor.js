@@ -1,3 +1,4 @@
+import {loadClubWaiver,applyClubWaiver} from './club-waiver.js';
 import {feeFields,readFeeFields} from './fee-fields.js';
 import {feeKind,feeKinds} from '../src/domain/fee-defaults.js';
 import {applyPremiumDefaults} from '../src/domain/premium-defaults.js';
@@ -21,7 +22,10 @@ export function mountPremiumEditor({client,container,action,message,navigate}){
   const user=await client.auth.getUser();if(ticket!==generation)return;
   let remembered=null,defaultsError=false;
   if(!user.error&&user.data?.user&&!user.data.user.is_anonymous){const result=await client.from('caro_premium_user_defaults').select('content,source_trial_id').eq('user_id',user.data.user.id).eq('club_id',value.club_id).eq('is_practice',value.is_practice===true).maybeSingle();if(ticket!==generation)return;defaultsError=!!result.error;remembered=result.data;}
-  const defaults=applyPremiumDefaults(data?.content||{},remembered?.source_trial_id===value.id?{}:remembered?.content||{}),content=defaults.content;dirty=defaults.filled.length>0;container.hidden=false;container.replaceChildren();container.append(el('h2','Premium builder'),el('p','Private draft. Trial identity, officials, dates and events come from the saved application. Saving or downloading does not publish entries or record CARO approval.'));
+  const clubWaiver=await loadClubWaiver(client,value,data?.content||{});if(ticket!==generation)return;const clubContent=applyClubWaiver(data?.content||{},clubWaiver);
+  const defaults=applyPremiumDefaults(clubContent.content,remembered?.source_trial_id===value.id?{}:remembered?.content||{}),content=defaults.content;dirty=defaults.filled.length>0||clubContent.filled;container.hidden=false;container.replaceChildren();container.append(el('h2','Premium builder'),el('p','Private draft. Trial identity, officials, dates and events come from the saved application. Saving or downloading does not publish entries or record CARO approval.'));
+  if(clubContent.filled)container.append(el('p','Host waiver filled from this club’s previous saved premium'+(clubWaiver.title?' ('+clubWaiver.title+')':'')+'. Review it for this trial, edit if needed, then save the premium draft.'));
+  if(clubWaiver.error)container.append(el('p','The previous club waiver could not be loaded. Enter the host waiver manually or try reopening the premium.'));
   if(defaults.filled.length){const notice=el('article');notice.append(el('h3','Filled from your previous premium'),el('p','Your last saved answers for this club have filled '+defaults.filled.length+' unanswered fields. Review and edit the wording, agreement and fees for this trial, then save. Dates, schedule, capacity and trial officials were not copied. Existing answers were kept.'));container.append(notice);}
   else if(defaultsError)container.append(el('p','Remembered answers are unavailable until the premium-defaults database update is installed. You can still edit and save this premium.'));
   const amendments=await client.from('caro_judge_amendments').select('event_id,version,officiating_judge,results_judge,public_notice').eq('trial_id',trial.id).order('version',{ascending:false});
