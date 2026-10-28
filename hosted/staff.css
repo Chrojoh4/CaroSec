@@ -83,3 +83,7 @@
 .workspace-error-dialog::backdrop{background:#16352e66}.workspace-error-dialog h2{margin:0 0 .8rem}.workspace-error-dialog p{white-space:pre-wrap;overflow-wrap:anywhere}.workspace-error-dialog button{margin-top:.75rem;min-height:48px}
 
 .workflow-next{border:2px solid #216b54;border-radius:12px;padding:1.2rem;background:#edf4ee;margin:1rem 0}.workflow-next h3{margin-top:0}.workflow-next button{white-space:normal;text-align:left;max-width:100%}
+
+.round-entry-options{display:flex;flex-wrap:wrap;gap:.6rem 1.5rem}.round-entry-options .check-field{margin:.3rem 0;padding:.6rem .8rem;border:1px solid #b8c9be;border-radius:8px;min-height:48px;box-sizing:border-box}
+
+.entry-intake .event-choice-details{display:block}.entry-intake .round-entry-options{display:flex;flex-wrap:wrap;gap:.6rem 1.5rem}
