@@ -1,3 +1,4 @@
+import {entryWindow} from '../src/domain/entry-window.js';
 import {mountPublicEntry,showReceipt} from './public-entry.js';
 import {createClient} from '@supabase/supabase-js';
 import {publicPremiumHtml} from '../src/domain/public-premium.js';
@@ -12,8 +13,18 @@ async function load(){
  $('premium').innerHTML=publicPremiumHtml(data);document.title=data.configuration.title+' — Premium';
  $('status').textContent='Published premium';$('controls').hidden=false;
  $('paper-entry').href='/api/entry-form?trial='+encodeURIComponent(slug);
- if(data.onlineEnabled)mountPublicEntry($('entry-panel'),data);
- $('entry-status').textContent=data.onlineEnabled?'Complete the online entry form below, or use the paper / email download.':'Online entries are not enabled. Use the paper / email entry form and the host’s instructions.';
+ let mounted=false,lastPhase='';
+ function updateWindow(){
+  if(!$('entry-status'))return;
+  const window=entryWindow(data.configuration);$('entry-status').textContent=window.text;$('entry-status').className=window.phase==='before'?'entry-countdown':'';
+  if(window.phase==='open'&&!mounted){
+   if(data.onlineEnabled){mountPublicEntry($('entry-panel'),data);mounted=true;}
+   else $('entry-status').textContent='Online entry setup is being completed. Please contact the host or use the paper / email form.';
+  }
+  if(lastPhase==='open'&&window.phase!=='open')for(const control of $('entry-panel').querySelectorAll('input,select,textarea,button'))control.disabled=true;
+  lastPhase=window.phase;
+ }
+ updateWindow();setInterval(updateWindow,1000);
 }
 $('print').addEventListener('click',()=>window.print());
 load().catch(error=>{$('status').textContent=error.message;});

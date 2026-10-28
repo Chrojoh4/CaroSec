@@ -52,7 +52,7 @@ export function mountPremiumEditor({client,container,action,message,navigate}){
    const openPublic=el('a','Open published premium');openPublic.href=publicUrl;openPublic.target='_blank';openPublic.rel='noopener';
    const paperPublic=el('a','Download public paper / email entry form (PDF)');paperPublic.href=paperUrl;paperPublic.target='_blank';paperPublic.rel='noopener';
    published.append(el('p','Share these public links with entrants. Secretary testing links below belong only to the private draft.'),openPublic,el('p'),paperPublic);
-   if(listing.online_enabled){const online=el('a','Enter online');online.href=publicUrl+'#entry-panel';online.target='_blank';online.rel='noopener';published.append(el('p'),online);}else published.append(el('p','Online submissions are not enabled for this published trial. Entrants can use the public paper / email PDF without a secretary account.'));
+   {const online=el('a','Enter online');online.href=publicUrl+'#entry-panel';online.target='_blank';online.rel='noopener';published.append(el('p'),online);}published.append(el('p','The online entry page shows a countdown before opening, accepts entries during the saved entry window, and shows a closed notice afterward.'));
    const downloadPublic=el('button','Download published premium HTML — for entrants');downloadPublic.type='button';downloadPublic.addEventListener('click',()=>action(async()=>{
     const {data,error}=await client.rpc('caro_public_premium',{p_slug:listing.slug});if(ticket!==generation)return;if(error)throw new Error('The published premium could not be loaded. Use Open published premium or try again.');
     const body=publicPremiumHtml(data).replaceAll('href="/','href="'+location.origin+'/');

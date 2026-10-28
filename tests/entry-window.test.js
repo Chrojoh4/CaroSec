@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {entryWindow} from '../src/domain/entry-window.js';
+const c={opens:'2026-11-15',closes:'2026-11-29',timezone:'America/Vancouver'};
+test('countdown switches at venue midnight and closes after the inclusive last day',()=>{assert.equal(entryWindow(c,'2026-11-15T07:59:59Z').phase,'before');assert.match(entryWindow(c,'2026-11-15T07:59:59Z').text,/0 days, 0 hours, 0 minutes, 1 seconds/);assert.equal(entryWindow(c,'2026-11-15T08:00:00Z').phase,'open');assert.equal(entryWindow(c,'2026-11-30T07:59:59Z').phase,'open');assert.equal(entryWindow(c,'2026-11-30T08:00:00Z').phase,'closed');});
+test('countdown uses the trial zone through daylight saving and rejects missing dates',()=>{assert.equal(entryWindow({...c,opens:'2026-10-31'},'2026-10-31T07:00:00Z').phase,'open');assert.equal(entryWindow({...c,opens:''}).phase,'unavailable');});

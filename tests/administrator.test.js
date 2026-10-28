@@ -475,4 +475,14 @@ test('System Administrator crosses clubs without granting ordinary staff access 
   await as(owner,'{"is_anonymous":true}');assert.equal((await db.query('select * from public.caro_premium_user_defaults')).rows.length,0);
  });
 
+ await t.test('scheduled publication enables both methods while keeping approval and private data checks',async()=>{
+  await db.exec('reset role');const sql=await readFile(new URL('../supabase/updates/enable-scheduled-online-entries.sql',import.meta.url),'utf8');await db.exec(sql);await db.exec(sql);
+  const definition=(await one("select pg_get_functiondef('caro_private.publish_premium(uuid,text,text,uuid,boolean,boolean)'::regprocedure) body")).body;assert.ok(definition.includes('p_online:=true;'));assert.equal(definition.includes('Online intake is not enabled in this release'),false);
+  const listing=await one("select p.* from public.caro_public_trials p join public.caro_trials t on t.id=p.trial_id where t.sanction_status='approved' and not t.is_practice limit 1");assert.ok(listing);
+  await as(owner);const review=(await one('select public.caro_publication_preview($1) result',[listing.trial_id])).result;
+  await one('select public.caro_publish_premium($1,$2,$3,$4,true,true) result',[listing.trial_id,review.reviewToken,listing.slug,crypto.randomUUID()]);
+  await db.exec('reset role;set role anon');const published=(await one('select public.caro_public_premium($1) result',[listing.slug])).result;assert.equal(published.onlineEnabled,true);
+  await assert.rejects(()=>db.query('select public.caro_publication_preview($1)',[listing.trial_id]),/permission denied/);
+ });
+
 });

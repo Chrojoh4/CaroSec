@@ -4,3 +4,5 @@
 @media print{button{display:none}.hosted-intake{display:none}}
 
 .published-premium section{margin:1rem 0;padding:.8rem 1rem;border-radius:0;box-shadow:none}.published-premium h2{margin:.3rem 0 .65rem}.published-premium h3{margin:.5rem 0}.published-premium p{margin:.45rem 0 .65rem}.published-premium th,.published-premium td{padding:.6rem .7rem}@media print{.published-premium section{padding:.5rem 0;margin:.65rem 0}.published-premium th,.published-premium td{padding:.35rem}}
+
+.entry-countdown{padding:1.5rem;background:#edf4ee;border:2px solid #216b54;border-radius:12px;font-size:1.25rem;line-height:1.6;font-variant-numeric:tabular-nums;text-align:center}
