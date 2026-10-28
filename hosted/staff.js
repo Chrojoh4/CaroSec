@@ -42,7 +42,7 @@ async function openTrialSection(trialId,section,entryId=null){
   if(section==='entry-settings'){entryPreview.clear();$('entry-settings-panel').hidden=false;}
   else{$('entry-settings-panel').hidden=true;await entryPreview.open(draftProof.trial,{draftRows:draftProof.draftRows,premiumContent:draftProof.premiumContent,downloadPaper:section==='entry-paper-proof'});}
   selectedSection=section;const routeUrl=new URL(location.href);routeUrl.searchParams.set('view',section==='entry-paper-proof'?'entry-preview':section);history.replaceState(null,'',routeUrl);
-  for(const button of document.querySelectorAll('#trial-navigation button')){if(button.id==='nav-'+(section==='entry-paper-proof'?'entry-preview':section))button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}
+  for(const button of document.querySelectorAll('#trial-navigation button')){if(button.id==='nav-'+section)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');}
   return;
  }
  if(!leaveEditors())return;
