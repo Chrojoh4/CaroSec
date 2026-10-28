@@ -81,3 +81,5 @@
 /* Errors stay at the center of the visible viewport until acknowledged. */
 .workspace-error-dialog{position:fixed;inset:0;margin:auto;width:min(38rem,calc(100vw - 2rem));max-height:calc(100dvh - 2rem);overflow:auto;box-sizing:border-box;padding:1.5rem;border:3px solid #9a3b22;border-radius:14px;background:#fff;color:#183c30;box-shadow:0 12px 50px #0005;font-size:1rem;line-height:1.6}
 .workspace-error-dialog::backdrop{background:#16352e66}.workspace-error-dialog h2{margin:0 0 .8rem}.workspace-error-dialog p{white-space:pre-wrap;overflow-wrap:anywhere}.workspace-error-dialog button{margin-top:.75rem;min-height:48px}
+
+.workflow-next{border:2px solid #216b54;border-radius:12px;padding:1.2rem;background:#edf4ee;margin:1rem 0}.workflow-next h3{margin-top:0}.workflow-next button{white-space:normal;text-align:left;max-width:100%}

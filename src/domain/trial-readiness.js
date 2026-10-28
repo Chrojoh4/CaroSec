@@ -5,7 +5,7 @@ export function trialReadiness(trial,state,{premium=null,settings=null,listing=n
  const summary=trialSummary(state,trial.id),tasks=[],entries=state.entries.filter(e=>e.trialId===trial.id);
  const add=(section,label,done)=>tasks.push({section,label,done});
  add('application','Review and lock trial details and rounds',trial.application_state==='finalized');
- if(!trial.is_practice)add('sanction','Record the actual CARO approval',trial.sanction_status==='approved');
+ if(!trial.is_practice)add('sanction',trial.sanction_status==='submitted'?'Record the actual CARO approval':trial.sanction_status==='approved'?'CARO approval recorded':'Record the application sent to CARO',trial.sanction_status==='approved');
  add('premium','Save premium wording and fees',premium!==null);
  add('entry-settings','Review event pricing and capacity',!!settings&&(entries.length>0||settings.premium_draft_revision===premium?.revision));
  if(!trial.is_practice)add('premium','Publish the reviewed premium and paper entry link',listing?.is_live===true);

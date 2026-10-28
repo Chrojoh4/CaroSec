@@ -94,7 +94,7 @@ $('refresh').addEventListener('click',()=>action(refresh));
 for(const item of trialWorkflow){const button=document.createElement('button');button.id='nav-'+item.key;button.className='secondary';button.textContent=item.label;button.addEventListener('click',()=>{if(selectedTrialId)action(()=>openTrialSection(selectedTrialId,item.key));});$('trial-workflow-links').append(button);}
 try{
   client=createBrowserAuth(__CARO_PUBLIC_CONFIG__,sessionStorage,{verifierStorage:localStorage});
-  editor=mountTrialEditor({client,container:$('trial-editor'),message,action,onSaved:async value=>{if(value?.id)showTrialContext(value);await refresh();}});
+  editor=mountTrialEditor({client,container:$('trial-editor'),message,action,navigate:section=>action(()=>openTrialSection(selectedTrialId,section)),onSaved:async value=>{if(value?.id)showTrialContext(value);await refresh();}});
   administration=mountAdministration({client,container:$('administration'),action,message});
   premiumEditor=mountPremiumEditor({client,container:$('premium-panel'),action,message,navigate:section=>action(()=>openTrialSection(selectedTrialId,section))});
   overview=mountOverview({client,container:$('overview-panel'),action,navigate:section=>action(()=>openTrialSection(selectedTrialId,section))});
@@ -107,7 +107,7 @@ try{
   entrySettings=mountEntrySettings({client,container:$('entry-settings-panel'),action,message,navigate:section=>action(()=>openTrialSection(selectedTrialId,section))});
   finance=mountFinanceEditor({client,container:$('finance-panel'),action,message});
   journal=mountActivityJournal({client,container:$('journal-panel'),action,message});
-  sanctionEditor=mountSanctionEditor({client,container:$('sanction-panel'),action,message,onSaved:refresh});
+  sanctionEditor=mountSanctionEditor({client,container:$('sanction-panel'),action,message,navigate:section=>action(()=>openTrialSection(selectedTrialId,section)),onSaved:async()=>{await refresh();await openTrialSection(selectedTrialId,'sanction');}});
   // Auth callbacks only schedule work; no awaited client calls inside the callback.
   client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){recoveryReady=false;$('new-password').hidden=true;$('request-reset').hidden=true;$('new-password-form').reset();refreshGeneration++;currentUserId=null;adminWorkspace=null;clearTrialContext();editor.clear();administration.clear();premiumEditor.clear();sanctionEditor.clear();journal.clear();finance.clear();entrySettings.clear();manualIntake.clear();entriesPanel.clear();trialDay.clear();reportsPanel.clear();overview?.clear();entryPreview?.clear();judgeAmendments?.clear();$('admin-link').hidden=true; $('workspace').hidden=true;$('clubs').replaceChildren();$('trials').replaceChildren();$('identity').textContent='';$('login').hidden=false;message('You are signed out.');}});
   await action(async()=>{const callback=new URL(location.href),code=callback.searchParams.get('code'),flowId=callback.searchParams.get('sb_flow_id'),requestedRecovery=callback.searchParams.get('auth')==='recovery',callbackError=callback.searchParams.has('error')||callback.searchParams.has('error_code')||new URLSearchParams(callback.hash.slice(1)).has('error');
